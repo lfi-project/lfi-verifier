@@ -9,6 +9,8 @@ tests_x64 = [
   'x64/fail.s',
 ]
 
+go = find_program('go')
+
 clang = find_program('clang', required: false)
 
 if clang.found()

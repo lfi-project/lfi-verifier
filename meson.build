@@ -26,8 +26,6 @@ c_args_warnings = [
 arch_raw = get_option('arch')
 arch = arch_raw.split(',')
 
-go = find_program('go')
-
 argp = subproject('argp').get_variable('argp_dep')
 
 dependencies = []

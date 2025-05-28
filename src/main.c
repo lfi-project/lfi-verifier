@@ -95,7 +95,7 @@ long long unsigned time_ns()
 }
 
 static bool
-verify(struct LFIVerifier* v, const char* filename)
+verify(struct LFIVerifier *v, const char *filename)
 {
     FILE *file = fopen(filename, "rb");
     if (!file) {
@@ -186,7 +186,7 @@ getarch()
 struct Args args;
 
 static void
-showerr(char* msg, size_t sz)
+showerr(char *msg, size_t sz)
 {
     (void) sz;
     fprintf(stderr, "%s\n", msg);

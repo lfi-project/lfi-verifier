@@ -114,6 +114,32 @@ verify(struct LFIVerifier *v, const char *filename)
         goto err;
     }
 
+    switch (ehdr.e_machine) {
+    case EM_X86_64:
+#ifdef ARCH_X64
+        if (!args.arch || strcmp(args.arch, "x64") == 0) {
+            v->verify = lfiv_verify_x64;
+            break;
+        }
+#endif
+        fprintf(stderr, "error: ELF file is x64, not %s\n", args.arch);
+        goto err;
+    case EM_AARCH64:
+#ifdef ARCH_ARM64
+        if (!args.arch || strcmp(args.arch, "arm64") == 0) {
+            v->verify = lfiv_verify_arm64;
+            break;
+        }
+#endif
+        fprintf(stderr, "error: ELF file is arm64, not %s\n", args.arch);
+        goto err;
+    default:
+        fprintf(stderr, "ELF architecture is not x64 or arm64\n");
+        goto err;
+    }
+
+    assert(v->verify != NULL);
+
     size_t total = 0;
 
     long long unsigned t1 = time_ns();
@@ -168,21 +194,6 @@ err:
     return false;
 }
 
-static char *
-getarch()
-{
-#if defined(__x86_64__) || defined(_M_X64)
-    return "x64";
-#elif defined(__aarch64__) || defined(_M_ARM64)
-    return "arm64";
-#elif defined(__riscv__)
-    return "riscv64";
-#else
-    fprintf(stderr, "running on unsupported architecture, use --arch to specify target\n");
-    exit(1);
-#endif
-}
-
 struct Args args;
 
 static void
@@ -197,9 +208,6 @@ main(int argc, char **argv)
 {
     argp_parse(&argp, argc, argv, ARGP_NO_HELP, 0, &args);
 
-    if (args.arch == NULL)
-        args.arch = getarch();
-
     if (args.n == 0)
         args.n = 1;
 
@@ -207,17 +215,6 @@ main(int argc, char **argv)
     struct LFIVerifier v = (struct LFIVerifier) {
         .opts = opts,
     };
-
-#ifdef ARCH_X64
-    if (strcmp(args.arch, "x64") == 0)
-        v.verify = lfiv_verify_x64;
-#endif
-#ifdef ARCH_ARM64
-    if (strcmp(args.arch, "arm64") == 0)
-        v.verify = lfiv_verify_arm64;
-#endif
-
-    assert(v.verify != NULL);
 
     if (args.ninputs <= 0) {
         fprintf(stderr, "no input\n");

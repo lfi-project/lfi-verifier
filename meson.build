@@ -63,10 +63,9 @@ install_headers('src/include/lfiv.h')
 
 lfiv_exec = executable(
   'lfi-verify',
-  files('src/main.c'),
+  files('tools/lfi-verify/main.c'),
   c_args: c_args_hardened + c_args_warnings + c_defines,
   dependencies: [lfiv, argp],
-  include_directories: include_directories('src/include'),
   install: true,
 )
 

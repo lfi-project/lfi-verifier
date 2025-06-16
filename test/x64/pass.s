@@ -62,3 +62,11 @@ jmpq *(%r14)
 leaq 1f(%rip), %r11
 jmpq *8(%r14)
 1:
+---
+leaq 1f(%rip), %r11
+jmpq *(%r14)
+.p2align 5
+1:
+---
+lea -0x10(%ebp), %esp
+lea (%rsp, %r14, 1), %rsp

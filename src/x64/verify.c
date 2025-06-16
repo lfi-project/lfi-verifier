@@ -14,6 +14,7 @@ struct Verifier {
     bool abort;
     uintptr_t addr;
     struct LFIVOptions *opts;
+    size_t bundlesize;
 };
 
 enum {
@@ -153,12 +154,12 @@ static void chkmod(struct Verifier *v, FdInstr *instr) {
     }
 }
 
-static void chkbranch(struct Verifier *v, FdInstr *instr, size_t bundlesize) {
+static void chkbranch(struct Verifier *v, FdInstr *instr) {
     int64_t target;
     bool indirect, cond;
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
     if (branch && !indirect) {
-        if (target % bundlesize != 0)
+        if (target % v->bundlesize != 0)
             verr(v, instr, "jump target is not bundle-aligned");
     } else if (branch && indirect) {
         verr(v, instr, "invalid indirect branch");
@@ -167,11 +168,11 @@ static void chkbranch(struct Verifier *v, FdInstr *instr, size_t bundlesize) {
 
 #include "macroinst.c"
 
-static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size, size_t bundlesize) {
+static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
     size_t count = 0;
     size_t ninstr = 0;
 
-    while (count < bundlesize && count < size) {
+    while (count < v->bundlesize && count < size) {
         struct MacroInst mi = macroinst(v, &buf[count], size - count);
         if (mi.size < 0) {
             FdInstr instr;
@@ -186,12 +187,12 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size, size_t b
             if (!okmnem(v, &instr))
                 verr(v, &instr, "illegal instruction");
 
-            chkbranch(v, &instr, bundlesize);
+            chkbranch(v, &instr);
             chkmem(v, &instr);
             chkmod(v, &instr);
         }
 
-        if (count + mi.size > bundlesize) {
+        if (count + mi.size > v->bundlesize) {
             FdInstr instr;
             fd_decode(&buf[count], size - count, 64, 0, &instr);
             verr(v, &instr, "instruction spans bundle boundary");
@@ -212,15 +213,22 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
     struct Verifier v = {
         .addr = addr,
         .opts = opts,
+        .bundlesize = 32,
     };
-
-    size_t bundlesize = 32;
 
     size_t bdd_count = 0;
     size_t bdd_ninstr = 0;
 
+    uint8_t insn_buf[15] = {0};
+
     while (bdd_count < size) {
-        int n = lfi_x86_bdd(&insns[bdd_count]);
+        uint8_t *insn = &insns[bdd_count];
+        if (size - bdd_count < sizeof(insn_buf)) {
+            memcpy(insn_buf, &insns[bdd_count], size - bdd_count);
+            insn = &insn_buf[0];
+        }
+
+        int n = lfi_x86_bdd(insn);
         if (n == 0) {
             verrmin(&v, "%lx: unknown instruction", v.addr);
             return false;
@@ -235,8 +243,8 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
     size_t count = 0;
     size_t ninstr = 0;
     while (count < size) {
-        ninstr += vchkbundle(&v, &insns[count], size - count, bundlesize);
-        count += bundlesize;
+        ninstr += vchkbundle(&v, &insns[count], size - count);
+        count += v.bundlesize;
 
         // Exit early if there is no error reporter.
         if ((v.failed && v.opts->err == NULL) || v.abort)

@@ -225,7 +225,11 @@ static struct MacroInst macroinst_rtcall(struct Verifier *v, uint8_t *buf, size_
             !okdisp(FD_OP_DISP(&i_jmp, 0)))
         return (struct MacroInst){-1, 0};
 
-    if (FD_OP_DISP(&i_lea, 1) != i_jmp.size)
+    // Return target can either be the next instruction or can be some
+    // bundle-aligned location.
+    uintptr_t ret = v->addr + i_lea.size + FD_OP_DISP(&i_lea, 1);
+    bool ok = FD_OP_DISP(&i_lea, 1) == i_jmp.size || ret % v->bundlesize == 0;
+    if (!ok)
         return (struct MacroInst){-1, 0};
 
     return (struct MacroInst){i_lea.size + i_jmp.size, 2};

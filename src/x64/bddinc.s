@@ -1,4 +1,8 @@
+#ifdef __APPLE__
+.const
+#else
 .section .rodata
+#endif
 
 .align 4
 .global lfi_bdd_data

@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <elf.h>
 
+#include "elfdefinitions.h"
 #include "lfiv.h"
 #include "args.h"
 

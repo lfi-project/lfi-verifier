@@ -23,7 +23,7 @@ static uint8_t lookup(struct BDDNode *nodes, struct BDDNode *n, uint8_t *input) 
     return lookup(nodes, &nodes[n->lo], input);
 }
 
-extern uint8_t lfi_bdd_data[];
+extern uint8_t lfi_bdd_data[] asm("lfi_bdd_data");
 
 static uint16_t *entry = (uint16_t *) &lfi_bdd_data[0];
 static struct BDDNode *bdd_nodes = (struct BDDNode *) &lfi_bdd_data[2];

@@ -50,8 +50,8 @@ enum {
 #define INSN_NOP 0xd503201f
 
 enum {
-    REG_ADDR    = 18,
-    REG_BASE    = 21,
+    REG_ADDR    = 28,
+    REG_BASE    = 27,
     REG_RET     = 30,
 };
 

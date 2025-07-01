@@ -23,12 +23,12 @@ static uint8_t lookup(struct BDDNode *nodes, struct BDDNode *n, uint8_t *input) 
     return lookup(nodes, &nodes[n->lo], input);
 }
 
-extern struct BDDNode lfi_bdd_data[] asm("lfi_bdd_data");
+extern uint8_t lfi_bdd_data[] asm("lfi_bdd_data");
 
-// This number comes from the BDD generator.
-#define BDD_ENTRY 3825
+static uint16_t *entry = (uint16_t *) &lfi_bdd_data[0];
+static struct BDDNode *bdd_nodes = (struct BDDNode *) &lfi_bdd_data[2];
 
 uint8_t lfi_x86_bdd(uint8_t *input) {
-    uint8_t size = lookup(lfi_bdd_data, &lfi_bdd_data[BDD_ENTRY], input);
+    uint8_t size = lookup(bdd_nodes, &bdd_nodes[*entry], input);
     return size;
 }

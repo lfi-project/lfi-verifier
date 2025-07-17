@@ -60,6 +60,17 @@ static int nmod(FdInstr *instr) {
 // verification configuration.
 // Accounts for reads vs writes.
 static bool reserved(struct Verifier *v, FdInstr *instr, int op_index) {
+    // Allow all vector registers.
+    if (FD_OP_REG_TYPE(instr, op_index) == FD_RT_VEC)
+        return false;
+    // Allow all FPU registers.
+    if (FD_OP_REG_TYPE(instr, op_index) == FD_RT_FPU)
+        return false;
+    // Disallow anything else that is not GPR.
+    if (FD_OP_REG_TYPE(instr, op_index) != FD_RT_GPL &&
+        FD_OP_REG_TYPE(instr, op_index) != FD_RT_GPH)
+        return true;
+
     FdReg reg = FD_OP_REG(instr, op_index);
     bool is_read_op = nmod(instr) <= op_index;
 

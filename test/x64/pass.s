@@ -72,3 +72,7 @@ lea -0x10(%ebp), %esp
 lea (%rsp, %r14, 1), %rsp
 ---
 movaps -0x7884(%rip),%xmm4
+---
+cld
+---
+std

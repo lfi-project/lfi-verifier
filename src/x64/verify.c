@@ -126,7 +126,11 @@ static bool branchinfo(struct Verifier *v, FdInstr *instr, int64_t *target, bool
 }
 
 static bool okmnem(struct Verifier *v, FdInstr *instr) {
-    return true;
+    switch (FD_TYPE(instr)) {
+#include "base.instrs"
+    default:
+        return false;
+    }
 }
 
 static void chkmem(struct Verifier *v, FdInstr *instr) {

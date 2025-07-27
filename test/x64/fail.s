@@ -94,3 +94,9 @@ mov %fs:(%rip), %rax
 mov %gs, %rax
 ---
 mov %rax, %gs
+---
+syscall
+---
+wrgsbase %r11
+---
+wrfsbase %r11

@@ -76,3 +76,5 @@ movaps -0x7884(%rip),%xmm4
 cld
 ---
 std
+---
+pause

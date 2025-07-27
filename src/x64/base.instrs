@@ -1880,4 +1880,5 @@ case FDI_XOR:
 // case FDI_XSTORE:
 // case FDI_XSUSLDTRK:
 // case FDI_XTEST:
+case FDI_PAUSE:
     return true;

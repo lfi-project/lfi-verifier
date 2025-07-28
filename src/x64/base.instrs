@@ -794,8 +794,8 @@ case FDI_FISUB:
 case FDI_FISUBR:
 case FDI_FLD:
 case FDI_FLD1:
-case FDI_FLDCW:
-case FDI_FLDENV:
+// case FDI_FLDCW:
+// case FDI_FLDENV:
 case FDI_FLDL2E:
 case FDI_FLDL2T:
 case FDI_FLDLG2:
@@ -834,8 +834,8 @@ case FDI_FUCOMPP:
 case FDI_FWAIT:
 case FDI_FXAM:
 case FDI_FXCH:
-case FDI_FXRSTOR:
-case FDI_FXSAVE:
+// case FDI_FXRSTOR:
+// case FDI_FXSAVE:
 case FDI_FXTRACT:
 case FDI_FYL2X:
 case FDI_FYL2XP1:

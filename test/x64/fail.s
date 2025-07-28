@@ -100,3 +100,9 @@ syscall
 wrgsbase %r11
 ---
 wrfsbase %r11
+---
+ldmxcsr 0(%rip)
+---
+fldcw 0(%rip)
+---
+fxrstor 0(%rip)

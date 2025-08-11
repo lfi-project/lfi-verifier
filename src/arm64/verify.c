@@ -47,7 +47,14 @@ enum {
     INSN_SIZE = 4,
 };
 
-#define INSN_NOP 0xd503201f
+#define INSN_NOP       0xd503201f
+#define INSN_AUTIA1716 0xd503219f
+#define INSN_AUTIB1716 0xd50321df
+#define INSN_PACM      0xd50324ff
+#define INSN_BTIJC     0xd50324df
+#define INSN_BTIJ      0xd503249f
+#define INSN_BTIC      0xd503245f
+#define INSN_BTI       0xd503241f
 
 enum {
     REG_ADDR    = 28,
@@ -336,8 +343,17 @@ static void vchk(struct Verifier *v, uint32_t insn) {
         return;
     }
 
-    if (insn == INSN_NOP)
+    switch (insn) {
+    case INSN_NOP:
+    case INSN_AUTIA1716:
+    case INSN_AUTIB1716:
+    case INSN_PACM:
+    case INSN_BTIJC:
+    case INSN_BTIJ:
+    case INSN_BTIC:
+    case INSN_BTI:
         return;
+    }
 
     if (!okmnem(v, &dinst)) {
         verr(v, &dinst, "illegal instruction");

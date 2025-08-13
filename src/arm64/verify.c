@@ -198,6 +198,9 @@ static void chkbranch(struct Verifier *v, struct Da64Inst *dinst) {
             verr(v, dinst, "indirect branch using illegal register");
         }
         break;
+    case DA64I_RETAA:
+    case DA64I_RETAB:
+        break;
     default:
         assert(DA64_GROUP(dinst->mnem) != DA64G_BRANCHREG);
         break;

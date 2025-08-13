@@ -9,7 +9,6 @@ static bool assert_reg(FdInstr *instr, uint8_t op_index, FdReg reg, uint8_t op_s
         FD_OP_SIZE(instr, op_index) == op_size);
 }
 
-
 static struct MacroInst macroinst_stos(struct Verifier *v, uint8_t *buf, size_t size) {
     // stos becomes:
     //
@@ -289,6 +288,34 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
     return (struct MacroInst){count, icount};
 }
 
+static struct MacroInst macroinst_load(struct Verifier *v, uint8_t *buf, size_t size) {
+    // movl %eX, %eX
+    // movq (%r14, %rX), %rX
+
+    FdInstr i_mov, i_load;
+    if (fd_decode(&buf[0], size, 64, 0, &i_mov) < 0)
+        return (struct MacroInst){-1, 0};
+    if (fd_decode(&buf[i_mov.size], size - i_mov.size, 64, 0, &i_load) < 0)
+        return (struct MacroInst){-1, 0};
+
+    if (FD_TYPE(&i_mov) != FDI_MOV ||
+            FD_OP_TYPE(&i_mov, 0) != FD_OT_REG ||
+            FD_OP_TYPE(&i_mov, 1) != FD_OT_REG ||
+            FD_OP_SIZE(&i_mov, 0) != 4 ||
+            FD_OP_SIZE(&i_mov, 1) != 4 ||
+            FD_OP_REG(&i_mov, 0) != FD_OP_REG(&i_mov, 1))
+        return (struct MacroInst){-1, 0};
+
+    if (FD_TYPE(&i_load) != FDI_MOV ||
+            FD_OP_TYPE(&i_load, 1) != FD_OT_MEM ||
+            FD_OP_BASE(&i_load, 1) != FD_REG_R14 ||
+            FD_OP_INDEX(&i_load, 1) != FD_OP_REG(&i_mov, 0) ||
+            FD_OP_SCALE(&i_load, 1) != 0)
+        return (struct MacroInst){-1, 0};
+
+    return (struct MacroInst){i_mov.size + i_load.size, 2};
+}
+
 static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t size) {
     // movl/addl/subl/andl/leal ..., %esp
     // orq %r14, %rsp
@@ -345,6 +372,7 @@ static MacroFn mfns[] = {
     macroinst_modsp,
     macroinst_stos,
     macroinst_movs,
+    macroinst_load,
 };
 
 static struct MacroInst macroinst(struct Verifier *v, uint8_t *buf, size_t size) {

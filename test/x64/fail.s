@@ -104,3 +104,6 @@ wrfsbase %r11
 ldmxcsr 0(%rip)
 ---
 fxrstor 0(%rip)
+---
+movq %r11, %r11
+movq (%r14, %r11), %rax

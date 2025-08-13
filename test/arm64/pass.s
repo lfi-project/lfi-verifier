@@ -69,3 +69,12 @@ ldr x0, [x1]
 ---
 // flags: --sandbox=stores
 ldr x0, [x1], #16
+---
+.arch_extension pauth
+retaa
+---
+.arch_extension pauth
+autiasp
+---
+.arch_extension pauth
+paciasp

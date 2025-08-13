@@ -50,6 +50,8 @@ case DA64I_UBFM:
 case DA64I_BR:
 case DA64I_BLR:
 case DA64I_RET:
+case DA64I_RETAA:
+case DA64I_RETAB:
 case DA64I_BRK:
 case DA64I_CBZ:
 case DA64I_CBNZ:

@@ -173,6 +173,7 @@ static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t s
 
     if (FD_TYPE(&i_and) != FDI_AND ||
             FD_OP_TYPE(&i_and, 0) != FD_OT_REG ||
+            reserved(&i_and, 0) ||
             FD_OP_SIZE(&i_and, 0) != 4 ||
             FD_OP_TYPE(&i_and, 1) != FD_OT_IMM ||
             FD_OP_IMM(&i_and, 1) != 0xffffffffffffffe0)
@@ -266,6 +267,7 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
 
     if (FD_TYPE(&i_and) != FDI_AND ||
             FD_OP_TYPE(&i_and, 0) != FD_OT_REG ||
+            reserved(&i_and, 0) ||
             FD_OP_SIZE(&i_and, 0) != 4 ||
             FD_OP_TYPE(&i_and, 1) != FD_OT_IMM ||
             FD_OP_IMM(&i_and, 1) != 0xffffffffffffffe0)
@@ -303,10 +305,13 @@ static struct MacroInst macroinst_load(struct Verifier *v, uint8_t *buf, size_t 
             FD_OP_TYPE(&i_mov, 1) != FD_OT_REG ||
             FD_OP_SIZE(&i_mov, 0) != 4 ||
             FD_OP_SIZE(&i_mov, 1) != 4 ||
+            reserved(&i_mov, 0) ||
             FD_OP_REG(&i_mov, 0) != FD_OP_REG(&i_mov, 1))
         return (struct MacroInst){-1, 0};
 
     if (FD_TYPE(&i_load) != FDI_MOV ||
+            FD_OP_TYPE(&i_load, 0) != FD_OT_REG ||
+            reserved(&i_load, 0) ||
             FD_OP_TYPE(&i_load, 1) != FD_OT_MEM ||
             FD_OP_BASE(&i_load, 1) != FD_REG_R14 ||
             FD_OP_INDEX(&i_load, 1) != FD_OP_REG(&i_mov, 0) ||

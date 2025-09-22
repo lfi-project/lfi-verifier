@@ -59,7 +59,7 @@ static int nmod(FdInstr *instr) {
 // Check whether a particular register is reserved under the current
 // verification configuration.
 // Accounts for reads vs writes.
-static bool reserved(struct Verifier *v, FdInstr *instr, int op_index) {
+static bool reserved(FdInstr *instr, int op_index) {
     // Allow all vector registers.
     if (FD_OP_REG_TYPE(instr, op_index) == FD_RT_VEC)
         return false;
@@ -164,7 +164,7 @@ static void chkmod(struct Verifier *v, FdInstr *instr) {
         return;
 
     for (size_t i = 0; i < 4; i++) {
-        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(v, instr, i))
+        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(instr, i))
             verr(v, instr, "modification of reserved register");
     }
 }

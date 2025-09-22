@@ -107,3 +107,10 @@ fxrstor 0(%rip)
 ---
 movq %r11, %r11
 movq (%r14, %r11), %rax
+---
+movl %r11d, %r11d
+movq (%r14, %r11), %r14
+---
+andl $0xffffffe0, %r14d
+addq %r14, %r14
+jmp *%r14

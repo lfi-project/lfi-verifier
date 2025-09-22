@@ -29,11 +29,11 @@ mov (%esp), %rax
 jmp *%rax
 ---
 andl $0xffffffff, %eax
-orq %r14, %rax
+addq %r14, %rax
 jmp *%rax
 ---
 andq $0xffffffffffffffe0, %rax
-orq %r14, %rax
+addq %r14, %rax
 jmp *%rax
 ---
 andl $0xffffffe0, %eax
@@ -58,12 +58,12 @@ xchg %r14, %rax
 callq *%rax
 ---
 andl $0xffffffe0, %eax
-orq %r14, %rax
+addq %r14, %rax
 .nops 28
 callq *%rax
 ---
 andl $0xffffffe0, %eax
-orq %r14, %rax
+addq %r14, %rax
 callq *%rax
 ---
 jmpq *(%r14)

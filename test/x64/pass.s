@@ -30,28 +30,28 @@ mov 12(%rsp), %rax
 mov 12(%rip), %rax
 ---
 andl $0xffffffe0, %eax
-orq %r14, %rax
+addq %r14, %rax
 jmp *%rax
 ---
 movl %eax, %esp
-orq %r14, %rsp
+addq %r14, %rsp
 ---
 add $12, %esp
-orq %r14, %rsp
+addq %r14, %rsp
 ---
 andl $0xfffffff0, %esp
-orq %r14, %rsp
+addq %r14, %rsp
 ---
 cmp %rsp, %rsp
 ---
 andl $0xffffffe0, %eax
-orq %r14, %rax
+addq %r14, %rax
 .nops 24
 callq *%rax
 ---
 .nops 2
 andl $0xffffffe0, %eax
-orq %r14, %rax
+addq %r14, %rax
 .nops 22
 callq *%rax
 ---

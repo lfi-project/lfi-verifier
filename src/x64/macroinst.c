@@ -160,15 +160,15 @@ static struct MacroInst macroinst_movs(struct Verifier *v, uint8_t *buf, size_t 
 
 static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t size) {
     // andl $0xffffffe0, %eX
-    // orq %r14, %rX
+    // addq %r14, %rX
     // jmpq *%rX
 
-    FdInstr i_and, i_or, i_jmp;
+    FdInstr i_and, i_add, i_jmp;
     if (fd_decode(&buf[0], size, 64, 0, &i_and) < 0)
         return (struct MacroInst){-1, 0};
-    if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_or) < 0)
+    if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_add) < 0)
         return (struct MacroInst){-1, 0};
-    if (fd_decode(&buf[i_and.size + i_or.size], size - i_and.size - i_or.size, 64, 0, &i_jmp) < 0)
+    if (fd_decode(&buf[i_and.size + i_add.size], size - i_and.size - i_add.size, 64, 0, &i_jmp) < 0)
         return (struct MacroInst){-1, 0};
 
     if (FD_TYPE(&i_and) != FDI_AND ||
@@ -178,13 +178,13 @@ static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t s
             FD_OP_IMM(&i_and, 1) != 0xffffffffffffffe0)
         return (struct MacroInst){-1, 0};
 
-    if (FD_TYPE(&i_or) != FDI_OR ||
-            FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
-            FD_OP_TYPE(&i_or, 1) != FD_OT_REG ||
-            FD_OP_SIZE(&i_or, 0) != 8 ||
-            FD_OP_SIZE(&i_or, 1) != 8 ||
-            FD_OP_REG(&i_or, 1) != FD_REG_R14 ||
-            FD_OP_REG(&i_or, 0) != FD_OP_REG(&i_and, 0))
+    if (FD_TYPE(&i_add) != FDI_ADD ||
+            FD_OP_TYPE(&i_add, 0) != FD_OT_REG ||
+            FD_OP_TYPE(&i_add, 1) != FD_OT_REG ||
+            FD_OP_SIZE(&i_add, 0) != 8 ||
+            FD_OP_SIZE(&i_add, 1) != 8 ||
+            FD_OP_REG(&i_add, 1) != FD_REG_R14 ||
+            FD_OP_REG(&i_add, 0) != FD_OP_REG(&i_and, 0))
         return (struct MacroInst){-1, 0};
 
     if (FD_TYPE(&i_jmp) != FDI_JMP ||
@@ -192,7 +192,7 @@ static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t s
             FD_OP_REG(&i_jmp, 0) != FD_OP_REG(&i_and, 0))
         return (struct MacroInst){-1, 0};
 
-    return (struct MacroInst){i_and.size + i_or.size + i_jmp.size, 3};
+    return (struct MacroInst){i_and.size + i_add.size + i_jmp.size, 3};
 }
 
 static bool okdisp(int64_t disp) {
@@ -238,19 +238,19 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
     size_t bundlesize = 32;
 
     // andl $0xffffffe0, %eX
-    // orq %r14, %rX
+    // addq %r14, %rX
     // nop*
     // callq *%rX
 
-    FdInstr i_and, i_or, i_jmp;
+    FdInstr i_and, i_add, i_jmp;
     if (fd_decode(&buf[0], size, 64, 0, &i_and) < 0)
         return (struct MacroInst){-1, 0};
     if (FD_TYPE(&i_and) != FDI_AND)
         return (struct MacroInst){-1, 0};
 
-    if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_or) < 0)
+    if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_add) < 0)
         return (struct MacroInst){-1, 0};
-    size_t count = i_and.size + i_or.size;
+    size_t count = i_and.size + i_add.size;
     size_t icount = 2;
     while (count < bundlesize) {
         if (fd_decode(&buf[count], size - count, 64, 0, &i_jmp) < 0)
@@ -271,13 +271,13 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
             FD_OP_IMM(&i_and, 1) != 0xffffffffffffffe0)
         return (struct MacroInst){-1, 0};
 
-    if (FD_TYPE(&i_or) != FDI_OR ||
-            FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
-            FD_OP_TYPE(&i_or, 1) != FD_OT_REG ||
-            FD_OP_SIZE(&i_or, 0) != 8 ||
-            FD_OP_SIZE(&i_or, 1) != 8 ||
-            FD_OP_REG(&i_or, 1) != FD_REG_R14 ||
-            FD_OP_REG(&i_or, 0) != FD_OP_REG(&i_and, 0))
+    if (FD_TYPE(&i_add) != FDI_ADD ||
+            FD_OP_TYPE(&i_add, 0) != FD_OT_REG ||
+            FD_OP_TYPE(&i_add, 1) != FD_OT_REG ||
+            FD_OP_SIZE(&i_add, 0) != 8 ||
+            FD_OP_SIZE(&i_add, 1) != 8 ||
+            FD_OP_REG(&i_add, 1) != FD_REG_R14 ||
+            FD_OP_REG(&i_add, 0) != FD_OP_REG(&i_and, 0))
         return (struct MacroInst){-1, 0};
 
     if (FD_TYPE(&i_jmp) != FDI_CALL ||
@@ -318,15 +318,15 @@ static struct MacroInst macroinst_load(struct Verifier *v, uint8_t *buf, size_t 
 
 static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t size) {
     // movl/addl/subl/andl/leal ..., %esp
-    // orq %r14, %rsp
+    // addq %r14, %rsp
 
-    FdInstr i_mov, i_or;
+    FdInstr i_mov, i_add;
     if (fd_decode(&buf[0], size, 64, 0, &i_mov) < 0)
         return (struct MacroInst){-1, 0};
-    if (fd_decode(&buf[i_mov.size], size - i_mov.size, 64, 0, &i_or) < 0)
+    if (fd_decode(&buf[i_mov.size], size - i_mov.size, 64, 0, &i_add) < 0)
         return (struct MacroInst){-1, 0};
 
-    // allow addl, subl, lea, or movl
+    // allow addl, subl, lea, add movl
     if (FD_TYPE(&i_mov) != FDI_MOV &&
             FD_TYPE(&i_mov) != FDI_ADD &&
             FD_TYPE(&i_mov) != FDI_AND &&
@@ -339,27 +339,27 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
             FD_OP_REG(&i_mov, 0) != FD_REG_SP)
         return (struct MacroInst){-1, 0};
 
-    // Allow 'orq %r14, %rsp' or 'lea (%rsp, %r14, 1), %rsp'
-    bool fail_or = (FD_TYPE(&i_or) != FDI_OR ||
-            FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
-            FD_OP_TYPE(&i_or, 1) != FD_OT_REG ||
-            FD_OP_SIZE(&i_or, 0) != 8 ||
-            FD_OP_SIZE(&i_or, 1) != 8 ||
-            FD_OP_REG(&i_or, 0) != FD_REG_SP ||
-            FD_OP_REG(&i_or, 1) != FD_REG_R14);
-    bool fail_lea = (FD_TYPE(&i_or) != FDI_LEA ||
-            FD_OP_TYPE(&i_or, 1) != FD_OT_MEM ||
-            FD_OP_BASE(&i_or, 1) != FD_REG_SP ||
-            FD_OP_INDEX(&i_or, 1) != FD_REG_R14 ||
-            FD_OP_DISP(&i_or, 1) != 0 ||
-            FD_OP_SCALE(&i_or, 1) != 0 ||
-            FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
-            FD_OP_SIZE(&i_or, 0) != 8 ||
-            FD_OP_REG(&i_or, 0) != FD_REG_SP);
-    if (fail_lea && fail_or)
+    // Allow 'addq %r14, %rsp' add 'lea (%rsp, %r14, 1), %rsp'
+    bool fail_add = (FD_TYPE(&i_add) != FDI_ADD ||
+            FD_OP_TYPE(&i_add, 0) != FD_OT_REG ||
+            FD_OP_TYPE(&i_add, 1) != FD_OT_REG ||
+            FD_OP_SIZE(&i_add, 0) != 8 ||
+            FD_OP_SIZE(&i_add, 1) != 8 ||
+            FD_OP_REG(&i_add, 0) != FD_REG_SP ||
+            FD_OP_REG(&i_add, 1) != FD_REG_R14);
+    bool fail_lea = (FD_TYPE(&i_add) != FDI_LEA ||
+            FD_OP_TYPE(&i_add, 1) != FD_OT_MEM ||
+            FD_OP_BASE(&i_add, 1) != FD_REG_SP ||
+            FD_OP_INDEX(&i_add, 1) != FD_REG_R14 ||
+            FD_OP_DISP(&i_add, 1) != 0 ||
+            FD_OP_SCALE(&i_add, 1) != 0 ||
+            FD_OP_TYPE(&i_add, 0) != FD_OT_REG ||
+            FD_OP_SIZE(&i_add, 0) != 8 ||
+            FD_OP_REG(&i_add, 0) != FD_REG_SP);
+    if (fail_lea && fail_add)
         return (struct MacroInst){-1, 0};
 
-    return (struct MacroInst){i_mov.size + i_or.size, 2};
+    return (struct MacroInst){i_mov.size + i_add.size, 2};
 }
 
 

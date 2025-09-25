@@ -26,7 +26,7 @@ c_args_warnings = [
 arch_raw = get_option('arch')
 arch = arch_raw.split(',')
 
-argp = subproject('argp').get_variable('argp_dep')
+argtable = subproject('argtable3').get_variable('argtable_dep')
 
 dependencies = []
 srcs = []
@@ -72,7 +72,7 @@ lfiv_exec = executable(
   'lfi-verify',
   files('tools/lfi-verify/main.c'),
   c_args: c_args_hardened + c_args_warnings + c_defines,
-  dependencies: [lfiv, argp],
+  dependencies: [lfiv, argtable],
   install: true,
 )
 

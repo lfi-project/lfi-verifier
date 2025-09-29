@@ -137,8 +137,13 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
     if (FD_TYPE(instr) == FDI_LEA || FD_TYPE(instr) == FDI_NOP)
         return;
 
+    size_t n = nmod(instr);
+
     for (size_t i = 0; i < 4; i++) {
         if (FD_OP_TYPE(instr, i) == FD_OT_MEM) {
+            if (v->opts->box == LFI_BOX_STORES && i >= n)
+                continue;
+
             if (FD_SEGMENT(instr) == FD_REG_GS) {
                 if (FD_ADDRSIZE(instr) != 4)
                     verr(v, instr, "segmented memory access must use 32-bit address");

@@ -81,3 +81,6 @@ pause
 ---
 movl %r11d, %r11d
 movq (%r14, %r11), %rax
+---
+// flags: --sandbox=stores
+movq (%rdi), %rax

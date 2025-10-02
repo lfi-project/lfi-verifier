@@ -1,21 +1,15 @@
-project('fadec', ['c'], default_options: ['warning_level=3', 'c_std=c11'],
-        meson_version: '>=0.49')
-
 python3 = find_program('python3')
 
 # Check Python version
 py_version_res = run_command(python3, ['--version'], check: true)
 py_version = py_version_res.stdout().split(' ')[1]
-if not py_version.version_compare('>=3.6')
-  error('Python 3.6 required, got @0@'.format(py_version))
+if not py_version.version_compare('>=3.9')
+  error('Python 3.9 required, got @0@'.format(py_version))
 endif
 
 has_cpp = add_languages('cpp', required: false)
 
 cc = meson.get_compiler('c')
-if cc.has_argument('-fstrict-aliasing')
-  add_project_arguments('-fstrict-aliasing', language: 'c')
-endif
 if get_option('warning_level').to_int() >= 3
   extra_warnings = [
     '-Wmissing-prototypes', '-Wshadow',  '-Wwrite-strings', '-Wswitch-default',
@@ -55,25 +49,12 @@ sources = []
 headers = []
 components = []
 
-if get_option('with_decode')
-  components += 'decode'
-  headers += files('fadec.h')
-  sources += files('decode.c', 'format.c')
-endif
+components += 'decode'
+headers += files('fadec.h')
+sources += files('decode.c', 'format.c')
 
 generate_args = []
-if get_option('archmode') != 'only64'
-  generate_args += ['--32']
-endif
-if get_option('archmode') != 'only32'
-  generate_args += ['--64']
-endif
-if get_option('with_undoc')
-  generate_args += ['--with-undoc']
-endif
-if not meson.is_subproject()
-  generate_args += ['--stats']
-endif
+generate_args += ['--64']
 
 tables = []
 foreach component : components
@@ -82,14 +63,23 @@ foreach component : components
                                     '@INPUT1@', '@OUTPUT@'] + generate_args,
                           input: files('parseinstrs.py', 'instrs.txt'),
                           output: ['fadec-@0@-public.inc'.format(component),
-                                   'fadec-@0@-private.inc'.format(component)])
+                                   'fadec-@0@-private.inc'.format(component)],
+                          install: true,
+                          install_dir: [get_option('includedir'), false])
 endforeach
 
-libfadec = static_library('fadec', sources, tables)
+libfadec = static_library('fadec', sources, tables, install: true)
 fadec = declare_dependency(link_with: libfadec,
                            include_directories: include_directories('.'),
                            sources: tables)
 
-if meson.version().version_compare('>=0.54.0')
-  meson.override_dependency('fadec', fadec)
-endif
+foreach component : components
+  test(component, executable('@0@-test'.format(component),
+                             '@0@-test.c'.format(component),
+                             dependencies: fadec))
+  if component == 'encode2' and has_cpp
+    test(component + '-cpp', executable('@0@-test-cpp'.format(component),
+                                        '@0@-test.cc'.format(component),
+                                        dependencies: fadec))
+  endif
+endforeach

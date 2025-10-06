@@ -9,6 +9,10 @@ static bool assert_reg(FdInstr *instr, uint8_t op_index, FdReg reg, uint8_t op_s
         FD_OP_SIZE(instr, op_index) == op_size);
 }
 
+static bool mask_add(FdInstr *instr) {
+    return FD_TYPE(instr) == FDI_ADD || FD_TYPE(instr) == FDI_OR;
+}
+
 static struct MacroInst macroinst_stos(struct Verifier *v, uint8_t *buf, size_t size) {
     // stos becomes:
     //
@@ -160,7 +164,7 @@ static struct MacroInst macroinst_movs(struct Verifier *v, uint8_t *buf, size_t 
 
 static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t size) {
     // andl $0xffffffe0, %eX
-    // addq %r14, %rX
+    // addq %r14, %rX (or orq)
     // jmpq *%rX
 
     FdInstr i_and, i_add, i_jmp;
@@ -179,7 +183,7 @@ static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t s
             FD_OP_IMM(&i_and, 1) != 0xffffffffffffffe0)
         return (struct MacroInst){-1, 0};
 
-    if (FD_TYPE(&i_add) != FDI_ADD ||
+    if (!mask_add(&i_add) ||
             FD_OP_TYPE(&i_add, 0) != FD_OT_REG ||
             FD_OP_TYPE(&i_add, 1) != FD_OT_REG ||
             FD_OP_SIZE(&i_add, 0) != 8 ||
@@ -239,7 +243,7 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
     size_t bundlesize = 32;
 
     // andl $0xffffffe0, %eX
-    // addq %r14, %rX
+    // addq %r14, %rX (or orq)
     // nop*
     // callq *%rX
 
@@ -273,7 +277,7 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
             FD_OP_IMM(&i_and, 1) != 0xffffffffffffffe0)
         return (struct MacroInst){-1, 0};
 
-    if (FD_TYPE(&i_add) != FDI_ADD ||
+    if (!mask_add(&i_add) ||
             FD_OP_TYPE(&i_add, 0) != FD_OT_REG ||
             FD_OP_TYPE(&i_add, 1) != FD_OT_REG ||
             FD_OP_SIZE(&i_add, 0) != 8 ||
@@ -323,7 +327,7 @@ static struct MacroInst macroinst_load(struct Verifier *v, uint8_t *buf, size_t 
 
 static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t size) {
     // movl/addl/subl/andl/leal ..., %esp
-    // addq %r14, %rsp
+    // addq %r14, %rsp (or orq)
 
     FdInstr i_mov, i_add;
     if (fd_decode(&buf[0], size, 64, 0, &i_mov) < 0)
@@ -345,7 +349,7 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
         return (struct MacroInst){-1, 0};
 
     // Allow 'addq %r14, %rsp' add 'lea (%rsp, %r14, 1), %rsp'
-    bool fail_add = (FD_TYPE(&i_add) != FDI_ADD ||
+    bool fail_add = (!mask_add(&i_add) ||
             FD_OP_TYPE(&i_add, 0) != FD_OT_REG ||
             FD_OP_TYPE(&i_add, 1) != FD_OT_REG ||
             FD_OP_SIZE(&i_add, 0) != 8 ||

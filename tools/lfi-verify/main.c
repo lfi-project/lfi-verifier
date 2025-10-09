@@ -86,45 +86,47 @@ verify(struct LFIVerifier *v, const char *filename)
     size_t total = 0;
 
     long long unsigned t1 = time_ns();
-    for (int i = 0; i < ehdr.e_phnum; ++i) {
-        if (fseek(file, ehdr.e_phoff + i * sizeof(Elf64_Phdr), SEEK_SET) != 0) {
-            fprintf(stderr, "seek failed: %s\n", strerror(errno));
-            goto err;
-        }
-
-        Elf64_Phdr phdr;
-        if (fread(&phdr, 1, sizeof(phdr), file) != sizeof(phdr)) {
-            fprintf(stderr, "read failed: %s\n", strerror(errno));
-            goto err;
-        }
-
-        if (phdr.p_type == PT_LOAD && (phdr.p_flags & PF_X)) {
-            void *segment = malloc(phdr.p_filesz);
-            if (!segment) {
-                fprintf(stderr, "error: out of memory\n");
-                goto err;
-            }
-
-            if (fseek(file, phdr.p_offset, SEEK_SET) != 0) {
+    for (int n = 0; n < args.n; n++) {
+        for (int i = 0; i < ehdr.e_phnum; ++i) {
+            if (fseek(file, ehdr.e_phoff + i * sizeof(Elf64_Phdr), SEEK_SET) != 0) {
                 fprintf(stderr, "seek failed: %s\n", strerror(errno));
-                free(segment);
                 goto err;
             }
 
-            if (fread(segment, 1, phdr.p_filesz, file) != phdr.p_filesz) {
+            Elf64_Phdr phdr;
+            if (fread(&phdr, 1, sizeof(phdr), file) != sizeof(phdr)) {
                 fprintf(stderr, "read failed: %s\n", strerror(errno));
-                free(segment);
                 goto err;
             }
 
-            if (!lfiv_verify(v, segment, phdr.p_filesz, phdr.p_vaddr)) {
-                fprintf(stderr, "verification failed\n");
-                return false;
+            if (phdr.p_type == PT_LOAD && (phdr.p_flags & PF_X)) {
+                void *segment = malloc(phdr.p_filesz);
+                if (!segment) {
+                    fprintf(stderr, "error: out of memory\n");
+                    goto err;
+                }
+
+                if (fseek(file, phdr.p_offset, SEEK_SET) != 0) {
+                    fprintf(stderr, "seek failed: %s\n", strerror(errno));
+                    free(segment);
+                    goto err;
+                }
+
+                if (fread(segment, 1, phdr.p_filesz, file) != phdr.p_filesz) {
+                    fprintf(stderr, "read failed: %s\n", strerror(errno));
+                    free(segment);
+                    goto err;
+                }
+
+                if (!lfiv_verify(v, segment, phdr.p_filesz, phdr.p_vaddr)) {
+                    fprintf(stderr, "verification failed\n");
+                    return false;
+                }
+
+                total += phdr.p_filesz;
+
+                free(segment);
             }
-
-            total += phdr.p_filesz;
-
-            free(segment);
         }
     }
     long long unsigned elapsed = time_ns() - t1;

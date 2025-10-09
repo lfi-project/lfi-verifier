@@ -193,14 +193,14 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
     size_t ninstr = 0;
 
     while (count < v->bundlesize && count < size) {
-        struct MacroInst mi = macroinst(v, &buf[count], size - count);
+        FdInstr instr;
+        int ret = fd_decode(&buf[count], size - count, 64, 0, &instr);
+        if (ret < 0) {
+            verrmin(v, "%lx: unknown instruction", v->addr);
+            return ninstr;
+        }
+        struct MacroInst mi = macroinst(v, &instr, &buf[count], size - count);
         if (mi.size < 0) {
-            FdInstr instr;
-            int ret = fd_decode(&buf[count], size - count, 64, 0, &instr);
-            if (ret < 0) {
-                verrmin(v, "%lx: unknown instruction", v->addr);
-                return ninstr;
-            }
             mi.size = ret;
             mi.ninstr = 1;
 
@@ -213,8 +213,6 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
         }
 
         if (count + mi.size > v->bundlesize) {
-            FdInstr instr;
-            fd_decode(&buf[count], size - count, 64, 0, &instr);
             verr(v, &instr, "instruction spans bundle boundary");
             v->abort = true; // not useful to give further errors
             return ninstr;

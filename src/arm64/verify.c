@@ -240,7 +240,18 @@ static bool okmnem(struct Verifier *v, struct Da64Inst *dinst) {
 }
 
 static bool okrtcallimm(int16_t simm16) {
-    return (simm16 % 8 == 0) && simm16 < 256;
+    switch (simm16) {
+    case 0:
+    case 8:
+    case 16:
+    case 24:
+    case -8:
+    case -16:
+    case -24:
+    case -32:
+        return true;
+    }
+    return false;
 }
 
 static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
@@ -307,6 +318,13 @@ static bool okmod(struct Verifier *v, struct Da64Inst *dinst, struct Da64Op *op)
     if (retreg(op->reg) && dinst->mnem == DA64I_LDR_IMM) {
         // 'ldr x30, [rtsysreg, #n]' is allowed.
         if (dinst->ops[1].type == DA_OP_MEMUOFF &&
+                rtsysreg(v, dinst->ops[1].reg))
+            return true;
+    }
+
+    if (retreg(op->reg) && dinst->mnem == DA64I_LDURX) {
+        // 'ldur x30, [rtsysreg, #n]' is allowed.
+        if (dinst->ops[1].type == DA_OP_MEMSOFF &&
                 rtsysreg(v, dinst->ops[1].reg))
             return true;
     }

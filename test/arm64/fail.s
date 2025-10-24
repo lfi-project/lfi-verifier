@@ -88,3 +88,7 @@ ldr x0, [x27], #16
 ---
 // flags: --sandbox=stores
 str x0, [x1]
+---
+ldur x30, [x27, #32]
+---
+ldr x30, [x27, #6]

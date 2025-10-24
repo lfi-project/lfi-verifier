@@ -78,3 +78,5 @@ autiasp
 ---
 .arch_extension pauth
 paciasp
+---
+ldur x30, [x27, #-8]

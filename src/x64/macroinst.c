@@ -197,8 +197,19 @@ static struct MacroInst macroinst_jmp(struct Verifier *v, FdInstr *first, uint8_
     return (struct MacroInst){i_and.size + i_add.size + i_jmp.size, 3};
 }
 
-static bool okdisp(int64_t disp) {
-    return (disp % 8 == 0) && (disp < 256);
+static bool okrtcalldisp(int64_t disp) {
+    switch (disp) {
+    case 0:
+    case 8:
+    case 16:
+    case 24:
+    case -8:
+    case -16:
+    case -24:
+    case -32:
+        return true;
+    }
+    return false;
 }
 
 static struct MacroInst macroinst_rtcall(struct Verifier *v, FdInstr *first, uint8_t *buf, size_t size) {
@@ -223,7 +234,7 @@ static struct MacroInst macroinst_rtcall(struct Verifier *v, FdInstr *first, uin
             FD_OP_BASE(&i_jmp, 0) != FD_REG_R14 ||
             FD_OP_INDEX(&i_jmp, 0) != FD_REG_NONE ||
             FD_OP_SCALE(&i_jmp, 0) != 0 ||
-            !okdisp(FD_OP_DISP(&i_jmp, 0)))
+            !okrtcalldisp(FD_OP_DISP(&i_jmp, 0)))
         return (struct MacroInst){-1, 0};
 
     // Return target can either be the next instruction or can be some

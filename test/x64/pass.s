@@ -84,3 +84,7 @@ movq (%r14, %r11), %rax
 ---
 // flags: --sandbox=stores
 movq (%rdi), %rax
+---
+leaq 1f(%rip), %r11
+jmpq *-8(%r14)
+1:

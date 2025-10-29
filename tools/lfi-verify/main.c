@@ -155,6 +155,7 @@ main(int argc, char **argv)
     struct arg_str *arch = arg_strn("a", "arch", "ARCH", 0, 1, "run on architecture (x64,arm64)");
     struct arg_int *n = arg_intn("n", "n", "NUM", 0, 1, "run the verifier n times (for benchmarking)");
     struct arg_str *sandbox = arg_strn("s", "sandbox", "TYPE", 0, 1, "select sandbox type (full,stores)");
+    struct arg_lit *no_bdd = arg_lit0(NULL, "no-bdd", "disable the BDD filter (x86-64)");
     struct arg_str *inputs = arg_strn(NULL, NULL, "<input>", 0, 1000, "input files");
     struct arg_end *end = arg_end(20);
 
@@ -163,6 +164,7 @@ main(int argc, char **argv)
         arch,
         n,
         sandbox,
+        no_bdd,
         inputs,
         end,
     };
@@ -201,6 +203,10 @@ main(int argc, char **argv)
             fprintf(stderr, "unsupported sandbox type: %s\n", sandbox->sval[0]);
             return 1;
         }
+    }
+
+    if (no_bdd->count > 0) {
+        opts.no_bdd = true;
     }
 
     opts.err = showerr;

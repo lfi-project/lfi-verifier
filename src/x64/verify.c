@@ -239,21 +239,23 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
 
     uint8_t insn_buf[15] = {0};
 
-    while (bdd_count < size) {
-        uint8_t *insn = &insns[bdd_count];
-        if (size - bdd_count < sizeof(insn_buf)) {
-            memcpy(insn_buf, &insns[bdd_count], size - bdd_count);
-            insn = &insn_buf[0];
-        }
+    if (!v.opts->no_bdd) {
+        while (bdd_count < size) {
+            uint8_t *insn = &insns[bdd_count];
+            if (size - bdd_count < sizeof(insn_buf)) {
+                memcpy(insn_buf, &insns[bdd_count], size - bdd_count);
+                insn = &insn_buf[0];
+            }
 
-        uint8_t n = lfi_x86_bdd(insn);
-        if (n == 0) {
-            verrmin(&v, "%lx: unknown instruction", v.addr);
-            return false;
+            uint8_t n = lfi_x86_bdd(insn);
+            if (n == 0) {
+                verrmin(&v, "%lx: unknown instruction", v.addr);
+                return false;
+            }
+            v.addr += n;
+            bdd_count += n;
+            bdd_ninstr++;
         }
-        v.addr += n;
-        bdd_count += n;
-        bdd_ninstr++;
     }
 
     v.addr = addr;
@@ -269,8 +271,10 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
             return false;
     }
 
-    if (!v.failed) {
-        assert(bdd_ninstr == ninstr);
+    if (!v.opts->no_bdd) {
+        if (!v.failed) {
+            assert(bdd_ninstr == ninstr);
+        }
     }
 
     return !v.failed;

@@ -13,6 +13,9 @@ struct LFIVOptions {
     // Sandbox type (full, stores-only).
     enum LFIBoxType box;
 
+    // Disable BDD filter (x86-64).
+    bool no_bdd;
+
     // Callback to print a null-terminated error message if verification fails.
     void (*err)(char *msg, size_t size);
 };

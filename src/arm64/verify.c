@@ -360,14 +360,6 @@ static void chkwriteback(struct Verifier *v, struct Da64Inst *dinst) {
 }
 
 static void vchk(struct Verifier *v, uint32_t insn) {
-    struct Da64Inst dinst;
-    da64_decode(insn, &dinst);
-
-    if (dinst.mnem == DA64I_UNKNOWN) {
-        verrmin(v, "%lx: unknown instruction: %x", v->addr, insn);
-        return;
-    }
-
     switch (insn) {
     case INSN_NOP:
     case INSN_AUTIA1716:
@@ -381,6 +373,14 @@ static void vchk(struct Verifier *v, uint32_t insn) {
     case INSN_BTI:
     case INSN_XPACLRI:
     case INSN_CNTD_X0:
+        return;
+    }
+
+    struct Da64Inst dinst;
+    da64_decode(insn, &dinst);
+
+    if (dinst.mnem == DA64I_UNKNOWN) {
+        verrmin(v, "%lx: unknown instruction: %x", v->addr, insn);
         return;
     }
 

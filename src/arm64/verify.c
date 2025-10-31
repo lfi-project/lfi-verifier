@@ -58,6 +58,7 @@ enum {
 #define INSN_BTIC      0xd503245f
 #define INSN_BTI       0xd503241f
 #define INSN_XPACLRI   0xd50320ff
+#define INSN_CNTD_X0   0x04e0e3e0
 
 enum {
     REG_ADDR    = 28,
@@ -379,6 +380,7 @@ static void vchk(struct Verifier *v, uint32_t insn) {
     case INSN_BTIC:
     case INSN_BTI:
     case INSN_XPACLRI:
+    case INSN_CNTD_X0:
         return;
     }
 

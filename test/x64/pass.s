@@ -88,3 +88,5 @@ movq (%rdi), %rax
 leaq 1f(%rip), %r11
 jmpq *-8(%r14)
 1:
+---
+movq 8(%r14), %rdi

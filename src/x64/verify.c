@@ -156,7 +156,8 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
             if (FD_ADDRSIZE(instr) != 8)
                 verr(v, instr, "non-segmented memory access must use 64-bit address");
             if (FD_OP_BASE(instr, i) != FD_REG_SP &&
-                    FD_OP_BASE(instr, i) != FD_REG_IP)
+                    FD_OP_BASE(instr, i) != FD_REG_IP &&
+                    FD_OP_BASE(instr, i) != FD_REG_R14)
                 verr(v, instr, "invalid base register for memory access");
             if (FD_OP_INDEX(instr, i) != FD_REG_NONE)
                 verr(v, instr, "invalid index register for memory access");

@@ -117,3 +117,7 @@ jmp *%r14
 ---
 // flags: --sandbox=stores
 movq %rax, (%rdi)
+---
+movq (%r14, %rax), %rdi
+---
+movq (%rsp, %r14), %rdi

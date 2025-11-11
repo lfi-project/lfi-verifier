@@ -44,6 +44,12 @@ static void verr(struct Verifier *v, FdInstr *inst, const char* msg) {
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
+static inline int64_t truncp(int64_t addr, size_t align)
+{
+    size_t align_mask = align - 1;
+    return addr & ~align_mask;
+}
+
 static int nmod(FdInstr *instr) {
     switch (FD_TYPE(instr)) {
     case FDI_CMP:
@@ -186,19 +192,20 @@ static void chkbranch(struct Verifier *v, FdInstr *instr, size_t loc, uint8_t *b
     if (branch && !indirect) {
         target += loc;
         if (target % v->bundlesize != 0) {
-            if (target >= (int64_t) size)
+            if (target < 0 || target >= (int64_t) size)
                 return verr(v, instr, "external jump target is not bundle-aligned");
-            size_t count = target;
+            int64_t count = truncp(target, v->bundlesize);
             size_t accum = 0;
-            while (count % v->bundlesize != 0) {
-                if (accum > v->bundlesize)
-                    return verr(v, instr, "invalid instruction path at jump target");
+            while (accum < v->bundlesize) {
+                if (count == target)
+                    return;
                 struct MacroInst mi = vchkinstr(v, buf, count, size);
                 if (mi.size < 0)
                     return verr(v, instr, "unknown instruction at jump target");
                 count += mi.size;
                 accum += mi.size;
             }
+            verr(v, instr, "invalid instruction path at jump target");
         }
     } else if (branch && indirect) {
         verr(v, instr, "invalid indirect branch");

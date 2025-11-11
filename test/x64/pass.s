@@ -90,3 +90,9 @@ jmpq *-8(%r14)
 1:
 ---
 movq 8(%r14), %rdi
+---
+movq %rdi, %rax
+foo:
+nop
+jmp foo
+.nops 26

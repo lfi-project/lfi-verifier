@@ -113,7 +113,7 @@ static bool branchinfo(struct Verifier *v, FdInstr *instr, int64_t *target, bool
     case FDI_RET:
         if (FD_OP_TYPE(instr, 0) == FD_OT_OFF) {
             int64_t imm = FD_OP_IMM(instr, 0);
-            *target = v->addr + FD_SIZE(instr) + imm;
+            *target = FD_SIZE(instr) + imm;
         } else {
             *indirect = true;
         }
@@ -175,13 +175,28 @@ static void chkmod(struct Verifier *v, FdInstr *instr) {
     }
 }
 
-static void chkbranch(struct Verifier *v, FdInstr *instr) {
+static void chkbranch(struct Verifier *v, FdInstr *instr, size_t loc, uint8_t *buf, size_t size) {
     int64_t target;
     bool indirect, cond;
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
     if (branch && !indirect) {
-        if (target % v->bundlesize != 0)
-            verr(v, instr, "jump target is not bundle-aligned");
+        target += loc;
+        if (target % v->bundlesize != 0) {
+            if (target >= (int64_t) size)
+                return verr(v, instr, "external jump target is not bundle-aligned");
+            FdInstr target_instr;
+            size_t count = target;
+            size_t accum = 0;
+            while (count % v->bundlesize != 0) {
+                if (accum > v->bundlesize)
+                    return verr(v, instr, "invalid instruction path at jump target");
+                int ret = fd_decode(&buf[count], size - count, 64, 0, &target_instr);
+                if (ret < 0)
+                    return verr(v, instr, "unknown instruction at jump target");
+                count += ret;
+                accum += ret;
+            }
+        }
     } else if (branch && indirect) {
         verr(v, instr, "invalid indirect branch");
     }
@@ -189,18 +204,18 @@ static void chkbranch(struct Verifier *v, FdInstr *instr) {
 
 #include "macroinst.c"
 
-static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
+static size_t vchkbundle(struct Verifier *v, uint8_t *buf, size_t loc, size_t size) {
     size_t count = 0;
     size_t ninstr = 0;
 
-    while (count < v->bundlesize && count < size) {
+    while (count < v->bundlesize && count < size - loc) {
         FdInstr instr;
-        int ret = fd_decode(&buf[count], size - count, 64, 0, &instr);
+        int ret = fd_decode(&buf[loc + count], size - loc - count, 64, 0, &instr);
         if (ret < 0) {
             verrmin(v, "%lx: unknown instruction", v->addr);
             return ninstr;
         }
-        struct MacroInst mi = macroinst(v, &instr, &buf[count], size - count);
+        struct MacroInst mi = macroinst(v, &instr, &buf[loc + count], size - loc - count);
         if (mi.size < 0) {
             mi.size = ret;
             mi.ninstr = 1;
@@ -208,7 +223,7 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
             if (!okmnem(v, &instr))
                 verr(v, &instr, "illegal instruction");
 
-            chkbranch(v, &instr);
+            chkbranch(v, &instr, loc + count, buf, size);
             chkmem(v, &instr);
             chkmod(v, &instr);
         }
@@ -234,6 +249,11 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
         .opts = opts,
         .bundlesize = 32,
     };
+
+    if (v.addr % v.bundlesize != 0) {
+        verrmin(&v, "start address 0x%lx is not bundle-aligned\n", addr);
+        return false;
+    }
 
     size_t bdd_count = 0;
     size_t bdd_ninstr = 0;
@@ -264,7 +284,7 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
     size_t count = 0;
     size_t ninstr = 0;
     while (count < size) {
-        ninstr += vchkbundle(&v, &insns[count], size - count);
+        ninstr += vchkbundle(&v, insns, count, size);
         count += v.bundlesize;
 
         // Exit early if there is no error reporter.

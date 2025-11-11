@@ -1,6 +1,15 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdio.h>
+
+#ifdef LFI_CODE_BDD
+
+#include "x86-all.bdd.c"
+
+uint8_t lfi_x86_bdd(uint8_t *input) {
+    return evaluate(input);
+}
+
+#else
 
 struct BDDNode {
     uint16_t v;
@@ -32,3 +41,5 @@ uint8_t lfi_x86_bdd(uint8_t *input) {
     uint8_t size = lookup(bdd_nodes, &bdd_nodes[*entry], input);
     return size;
 }
+
+#endif

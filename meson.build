@@ -49,6 +49,10 @@ if 'x64' in arch
     'src/x64/bddinc.S',
   )
   c_defines += '-DARCH_X64'
+
+  if get_option('code_bdd')
+    c_defines += '-DLFI_CODE_BDD'
+  endif
 endif
 if 'riscv64' in arch
   srcs += files(

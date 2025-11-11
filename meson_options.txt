@@ -2,3 +2,8 @@ option('arch',
   type: 'string',
   value: 'arm64,x64',
   description: 'list of architectures for which to enable verification')
+
+option('code_bdd',
+  type: 'boolean',
+  value: false,
+  description: 'embed the x64 BDD as code rather than data (faster performance, longer build time)')

@@ -175,6 +175,10 @@ static void chkmod(struct Verifier *v, FdInstr *instr) {
     }
 }
 
+#include "macroinst.c"
+
+static struct MacroInst vchkinstr(struct Verifier *v, uint8_t *buf, size_t loc, size_t size);
+
 static void chkbranch(struct Verifier *v, FdInstr *instr, size_t loc, uint8_t *buf, size_t size) {
     int64_t target;
     bool indirect, cond;
@@ -184,17 +188,16 @@ static void chkbranch(struct Verifier *v, FdInstr *instr, size_t loc, uint8_t *b
         if (target % v->bundlesize != 0) {
             if (target >= (int64_t) size)
                 return verr(v, instr, "external jump target is not bundle-aligned");
-            FdInstr target_instr;
             size_t count = target;
             size_t accum = 0;
             while (count % v->bundlesize != 0) {
                 if (accum > v->bundlesize)
                     return verr(v, instr, "invalid instruction path at jump target");
-                int ret = fd_decode(&buf[count], size - count, 64, 0, &target_instr);
-                if (ret < 0)
+                struct MacroInst mi = vchkinstr(v, buf, count, size);
+                if (mi.size < 0)
                     return verr(v, instr, "unknown instruction at jump target");
-                count += ret;
-                accum += ret;
+                count += mi.size;
+                accum += mi.size;
             }
         }
     } else if (branch && indirect) {
@@ -202,7 +205,36 @@ static void chkbranch(struct Verifier *v, FdInstr *instr, size_t loc, uint8_t *b
     }
 }
 
-#include "macroinst.c"
+static void chkindbranch(struct Verifier *v, FdInstr *instr) {
+    int64_t target;
+    bool indirect, cond;
+    bool branch = branchinfo(v, instr, &target, &indirect, &cond);
+    if (branch && indirect) {
+        verr(v, instr, "invalid indirect branch");
+    }
+}
+
+static struct MacroInst vchkinstr(struct Verifier *v, uint8_t *buf, size_t loc, size_t size) {
+    FdInstr instr;
+    int ret = fd_decode(&buf[loc], size - loc, 64, 0, &instr);
+    if (ret < 0) {
+        verrmin(v, "%lx: unknown instruction", v->addr);
+        return (struct MacroInst) {-1, 0};
+    }
+    struct MacroInst mi = macroinst(v, &instr, &buf[loc], size - loc);
+    if (mi.size < 0) {
+        mi.size = ret;
+        mi.ninstr = 1;
+
+        if (!okmnem(v, &instr))
+            verr(v, &instr, "illegal instruction");
+
+        chkindbranch(v, &instr);
+        chkmem(v, &instr);
+        chkmod(v, &instr);
+    }
+    return mi;
+}
 
 static size_t vchkbundle(struct Verifier *v, uint8_t *buf, size_t loc, size_t size) {
     size_t count = 0;

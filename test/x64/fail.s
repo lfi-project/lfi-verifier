@@ -13,8 +13,10 @@ mov %rdi, %rdi
 ---
 jmp foo
 nop
+andl $0xffffffe0, %eax
 foo:
-nop
+addq %r14, %rax
+jmp *%rax
 ---
 jmpq *%rax
 ---

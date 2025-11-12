@@ -185,7 +185,29 @@ static void chkmod(struct Verifier *v, FdInstr *instr) {
 
 static struct MacroInst vchkinstr(struct Verifier *v, uint8_t *buf, size_t loc, size_t size);
 
-static void chkbranch(struct Verifier *v, FdInstr *instr, size_t loc, uint8_t *buf, size_t size) {
+#define TARGET_CACHE_SIZE 32
+
+struct JumpTargetCache {
+    uintptr_t targets[TARGET_CACHE_SIZE];
+    // Next cache slot to evict.
+    size_t idx;
+};
+
+static bool tcache_valid(struct JumpTargetCache *tcache, uintptr_t target) {
+    for (size_t i = 0; i < TARGET_CACHE_SIZE; i++) {
+        if (tcache->targets[i] == target) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void tcache_insert(struct JumpTargetCache *tcache, uintptr_t target) {
+    tcache->targets[tcache->idx] = target;
+    tcache->idx = (tcache->idx + 1) % TARGET_CACHE_SIZE;
+}
+
+static void chkbranch(struct Verifier *v, struct JumpTargetCache *tcache, FdInstr *instr, size_t loc, uint8_t *buf, size_t size) {
     int64_t target;
     bool indirect, cond;
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
@@ -194,11 +216,13 @@ static void chkbranch(struct Verifier *v, FdInstr *instr, size_t loc, uint8_t *b
         if (target % v->bundlesize != 0) {
             if (target < 0 || target >= (int64_t) size)
                 return verr(v, instr, "external jump target is not bundle-aligned");
+            if (tcache_valid(tcache, target))
+                return;
             int64_t count = truncp(target, v->bundlesize);
             size_t accum = 0;
             while (accum < v->bundlesize) {
                 if (count == target)
-                    return;
+                    return tcache_insert(tcache, target);
                 struct MacroInst mi = vchkinstr(v, buf, count, size);
                 if (mi.size < 0)
                     return verr(v, instr, "unknown instruction at jump target");
@@ -243,7 +267,7 @@ static struct MacroInst vchkinstr(struct Verifier *v, uint8_t *buf, size_t loc, 
     return mi;
 }
 
-static size_t vchkbundle(struct Verifier *v, uint8_t *buf, size_t loc, size_t size) {
+static size_t vchkbundle(struct Verifier *v, struct JumpTargetCache *tcache, uint8_t *buf, size_t loc, size_t size) {
     size_t count = 0;
     size_t ninstr = 0;
 
@@ -262,7 +286,7 @@ static size_t vchkbundle(struct Verifier *v, uint8_t *buf, size_t loc, size_t si
             if (!okmnem(v, &instr))
                 verr(v, &instr, "illegal instruction");
 
-            chkbranch(v, &instr, loc + count, buf, size);
+            chkbranch(v, tcache, &instr, loc + count, buf, size);
             chkmem(v, &instr);
             chkmod(v, &instr);
         }
@@ -320,10 +344,12 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
 
     v.addr = addr;
 
+    struct JumpTargetCache tcache = {};
+
     size_t count = 0;
     size_t ninstr = 0;
     while (count < size) {
-        ninstr += vchkbundle(&v, insns, count, size);
+        ninstr += vchkbundle(&v, &tcache, insns, count, size);
         count += v.bundlesize;
 
         // Exit early if there is no error reporter.

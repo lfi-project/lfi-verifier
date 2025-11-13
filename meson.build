@@ -76,7 +76,6 @@ lfiv_exec = executable(
   'lfi-verify',
   files(
     'tools/lfi-verify/main.c',
-    'tools/lfi-verify/argtable3.c',
     ),
   c_args: c_args_hardened + c_args_warnings + c_defines,
   dependencies: [lfiv],

@@ -4,11 +4,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <unistd.h>
+#include <getopt.h>
 
 #include "elfdefinitions.h"
 #include "lfiv.h"
 #include "args.h"
-#include "argtable3.h"
 
 static struct LFIVOptions opts;
 
@@ -148,65 +149,77 @@ showerr(char *msg, size_t sz)
     fprintf(stderr, "%s\n", msg);
 }
 
+static void usage(const char *prog)
+{
+    fprintf(stderr, "Usage: %s [OPTION...] INPUT...\n\n"
+            "  -h, --help              show help\n"
+            "  -a, --arch=ARCH         run on architecture (x64,arm64)\n"
+            "  -n, --n=NUM             run the verifier n times (for benchmarking)\n"
+            "  -s, --sandbox=TYPE      select sandbox type (full,stores)\n"
+            "      --no-bdd            disable the BDD filter (x86-64)\n"
+            , prog);
+    exit(1);
+}
+
 int
 main(int argc, char **argv)
 {
-    struct arg_lit *help = arg_lit0("h", "help", "show help");
-    struct arg_str *arch = arg_strn("a", "arch", "ARCH", 0, 1, "run on architecture (x64,arm64)");
-    struct arg_int *n = arg_intn("n", "n", "NUM", 0, 1, "run the verifier n times (for benchmarking)");
-    struct arg_str *sandbox = arg_strn("s", "sandbox", "TYPE", 0, 1, "select sandbox type (full,stores)");
-    struct arg_lit *no_bdd = arg_lit0(NULL, "no-bdd", "disable the BDD filter (x86-64)");
-    struct arg_str *inputs = arg_strn(NULL, NULL, "<input>", 0, 1000, "input files");
-    struct arg_end *end = arg_end(20);
-
-    void *argtable[] = {
-        help,
-        arch,
-        n,
-        sandbox,
-        no_bdd,
-        inputs,
-        end,
+    int opt;
+    int long_index = 0;
+    static struct option long_options[] = {
+        {"help", no_argument, 0, 'h'},
+        {"arch", required_argument, 0, 'a'},
+        {"n", required_argument, 0, 'n'},
+        {"sandbox", required_argument, 0, 's'},
+        {"no-bdd", no_argument, 0, 0},
+        {0, 0, 0, 0}
     };
 
-    if (arg_nullcheck(argtable) != 0) {
-        fprintf(stderr, "memory allocation error\n");
-        return 1;
-    }
+    args.n = 1;
 
-    int nerrors = arg_parse(argc, argv, argtable);
-    if (nerrors > 0) {
-        arg_print_errors(stderr, end, argv[0]);
-        return 1;
-    }
-
-    if (help->count > 0 || inputs->count == 0) {
-        printf("Usage: %s [OPTION...] INPUT...\n\n", argv[0]);
-        arg_print_glossary(stdout, argtable, "  %-25s %s\n");
-        return 0;
-    }
-
-    args.n = n->count > 0 ? n->ival[0] : 1;
-    if (arch->count > 0) {
-        args.arch = archname(arch->sval[0]);
-        if (!args.arch) {
-            fprintf(stderr, "unknown architecture: %s\n", arch->sval[0]);
-            return 1;
+    while ((opt = getopt_long(argc, argv, "ha:n:s:", long_options, &long_index)) != -1) {
+        switch (opt) {
+        case 'h':
+            usage(argv[0]);
+            break;
+        case 'a':
+            args.arch = archname(optarg);
+            if (!args.arch) {
+                fprintf(stderr, "unknown architecture: %s\n", optarg);
+                return 1;
+            }
+            break;
+        case 'n':
+            args.n = atoi(optarg);
+            break;
+        case 's':
+            if (strcmp(optarg, "full") == 0)
+                opts.box = LFI_BOX_FULL;
+            else if (strcmp(optarg, "stores") == 0)
+                opts.box = LFI_BOX_STORES;
+            else {
+                fprintf(stderr, "unsupported sandbox type: %s\n", optarg);
+                return 1;
+            }
+            break;
+        case 0:
+            if (strcmp(long_options[long_index].name, "no-bdd") == 0) {
+                opts.no_bdd = true;
+            }
+            break;
         }
     }
-    if (sandbox->count > 0) {
-        if (strcmp(sandbox->sval[0], "full") == 0)
-            opts.box = LFI_BOX_FULL;
-        else if (strcmp(sandbox->sval[0], "stores") == 0)
-            opts.box = LFI_BOX_STORES;
-        else {
-            fprintf(stderr, "unsupported sandbox type: %s\n", sandbox->sval[0]);
-            return 1;
-        }
+
+    if (optind >= argc) {
+        usage(argv[0]);
     }
 
-    if (no_bdd->count > 0) {
-        opts.no_bdd = true;
+    for (int i = optind; i < argc; i++) {
+        if (args.ninputs >= INPUTMAX) {
+            fprintf(stderr, "too many input files\n");
+            return 1;
+        }
+        args.inputs[args.ninputs++] = argv[i];
     }
 
     opts.err = showerr;
@@ -215,8 +228,8 @@ main(int argc, char **argv)
     };
 
     bool failed = false;
-    for (size_t i = 0; i < inputs->count; i++) {
-        if (!verify(&v, inputs->sval[i]))
+    for (size_t i = 0; i < args.ninputs; i++) {
+        if (!verify(&v, args.inputs[i]))
             failed = true;
     }
     if (failed)

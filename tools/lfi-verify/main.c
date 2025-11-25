@@ -13,6 +13,10 @@
 
 static struct LFIVOptions opts;
 
+#ifndef SHT_ANDROID_RELR
+#define SHT_ANDROID_RELR 0x6fffff00
+#endif
+
 static char *
 archname(const char *s)
 {
@@ -80,6 +84,24 @@ verify(struct LFIVerifier *v, const char *filename)
     default:
         fprintf(stderr, "ELF architecture is not x64 or arm64\n");
         goto err;
+    }
+
+    for (int i = 0; i < ehdr.e_shnum; ++i) {
+        if (fseek(file, ehdr.e_shoff + i * sizeof(Elf64_Shdr), SEEK_SET) != 0) {
+            fprintf(stderr, "seek failed: %s\n", strerror(errno));
+            goto err;
+        }
+
+        Elf64_Shdr shdr;
+        if (fread(&shdr, 1, sizeof(shdr), file) != sizeof(shdr)) {
+            fprintf(stderr, "read failed: %s\n", strerror(errno));
+            goto err;
+        }
+
+        if (shdr.sh_type == SHT_ANDROID_RELR) {
+            fprintf(stderr, "error: SHT_ANDROID_RELR section is not supported\n");
+            goto err;
+        }
     }
 
     assert(v->verify != NULL);

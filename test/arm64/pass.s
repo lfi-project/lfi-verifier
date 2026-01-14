@@ -71,12 +71,44 @@ ldr x0, [x1]
 ldr x0, [x1], #16
 ---
 .arch_extension pauth
-retaa
----
-.arch_extension pauth
 autiasp
 ---
 .arch_extension pauth
 paciasp
 ---
 ldur x30, [x27, #-8]
+---
+// x30 modification followed by guard and ret
+mov x30, x0
+add x30, x27, w30, uxtw
+ret
+---
+// x30 load from stack followed by guard and branch
+ldr x30, [sp]
+add x30, x27, w30, uxtw
+br x30
+---
+// Multiple x30 modifications before guard
+mov x30, x1
+mov x30, x2
+add x30, x27, w30, uxtw
+ret
+---
+// Load from stack, authenticate, guard, then return
+.arch_extension pauth
+ldr x30, [sp]
+autiasp
+add x30, x27, w30, uxtw
+ret
+---
+// x30 guarded before direct branch
+mov x30, x0
+add x30, x27, w30, uxtw
+b foo
+foo:
+---
+// x30 guarded before conditional branch
+mov x30, x0
+add x30, x27, w30, uxtw
+cbz x0, foo
+foo:

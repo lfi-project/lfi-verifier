@@ -92,3 +92,43 @@ str x0, [x1]
 ldur x30, [x27, #32]
 ---
 ldr x30, [x27, #6]
+---
+// x30 modified but not guarded before ret
+mov x30, x0
+ret
+---
+// x30 loaded from stack but not guarded before branch
+ldr x30, [sp]
+br x30
+---
+// Guard uses wrong extension (x30/uxtx instead of w30/uxtw)
+mov x30, x0
+add x30, x27, x30, uxtx
+ret
+---
+// retaa is now disallowed
+.arch_extension pauth
+retaa
+---
+// retab is now disallowed
+.arch_extension pauth
+retab
+---
+// Load from stack, authenticate, but no guard before return
+.arch_extension pauth
+ldr x30, [sp]
+autiasp
+ret
+---
+// x30 unguarded before direct branch
+mov x30, x0
+b foo
+foo:
+---
+// x30 unguarded before conditional branch
+mov x30, x0
+cbz x0, foo
+foo:
+---
+// x30 is not guaranteed to always be in a valid state, so moving to x28 is not allowed
+mov x28, x30

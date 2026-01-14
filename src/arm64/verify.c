@@ -14,6 +14,7 @@ struct Verifier {
     bool abort;
     uintptr_t addr;
     struct LFIVOptions *opts;
+    bool x30_guarded;
 };
 
 enum {
@@ -91,6 +92,19 @@ static bool basereg(uint8_t reg) {
 
 static bool retreg(uint8_t reg) {
     return reg == REG_RET;
+}
+
+// Check if instruction is the x30 guard: add x30, x27, w30, uxtw
+static bool is_x30_guard(struct Da64Inst *dinst) {
+    if (dinst->mnem != DA64I_ADD_EXT)
+        return false;
+    return dinst->ops[0].reg == REG_RET &&
+           dinst->ops[0].reggp.sf == 1 &&
+           basereg(dinst->ops[1].reg) &&
+           dinst->ops[2].reg == REG_RET &&
+           dinst->ops[2].reggpext.ext == DA_EXT_UXTW &&
+           dinst->ops[2].reggpext.sf == 0 &&
+           dinst->ops[2].reggpext.shift == 0;
 }
 
 static bool fixedreg(struct Verifier *v, uint8_t reg) {
@@ -196,16 +210,37 @@ static void chkbranch(struct Verifier *v, struct Da64Inst *dinst) {
             return;
         // fallthrough
     case DA64I_BR:
+        assert(dinst->ops[0].type == DA_OP_REGGP);
+        if (!cfreg(v, dinst->ops[0].reg)) {
+            verr(v, dinst, "indirect branch using illegal register");
+        }
+        if (!v->x30_guarded) {
+            verr(v, dinst, "x30 must be guarded before control flow");
+        }
+        break;
     case DA64I_RET:
         assert(dinst->ops[0].type == DA_OP_REGGP);
         if (!cfreg(v, dinst->ops[0].reg)) {
             verr(v, dinst, "indirect branch using illegal register");
         }
+        if (!v->x30_guarded) {
+            verr(v, dinst, "x30 must be guarded before control flow");
+        }
         break;
     case DA64I_RETAA:
     case DA64I_RETAB:
+        // Disallow entirely - pointer auth fails on masked x30
+        verr(v, dinst, "authenticated returns are not allowed");
         break;
     default:
+        // Check x30 is guarded for all other branches (direct branches, conditional branches)
+        if (DA64_GROUP(dinst->mnem) == DA64G_BRANCH ||
+            DA64_GROUP(dinst->mnem) == DA64G_BCOND ||
+            DA64_GROUP(dinst->mnem) == DA64G_BRANCHREG) {
+            if (!v->x30_guarded) {
+                verr(v, dinst, "x30 must be guarded before control flow");
+            }
+        }
         assert(DA64_GROUP(dinst->mnem) != DA64G_BRANCHREG);
         break;
     }
@@ -309,25 +344,37 @@ static bool okmod(struct Verifier *v, struct Da64Inst *dinst, struct Da64Op *op)
     if (!addrreg(v, op->reg, op->type == DA_OP_REGSP))
         return true;
 
+    // Handle x30 modifications - all allowed but track guardedness
+    if (retreg(op->reg)) {
+        // x30 guard instruction: add x30, x27, w30, uxtw
+        if (is_x30_guard(dinst)) {
+            v->x30_guarded = true;
+            return true;
+        }
+        // ldr x30, [x27, #n] - loads from base register guard x30
+        if (dinst->mnem == DA64I_LDR_IMM &&
+                dinst->ops[1].type == DA_OP_MEMUOFF &&
+                rtsysreg(v, dinst->ops[1].reg)) {
+            v->x30_guarded = true;
+            return true;
+        }
+        // ldur x30, [x27, #n] - loads from base register guard x30
+        if (dinst->mnem == DA64I_LDURX &&
+                dinst->ops[1].type == DA_OP_MEMSOFF &&
+                rtsysreg(v, dinst->ops[1].reg)) {
+            v->x30_guarded = true;
+            return true;
+        }
+        // Any other modification to x30 unguards it
+        v->x30_guarded = false;
+        return true;
+    }
+
+    // Handle x28 modifications - only allow 'add x28, base, lo, uxtw'
     if (dinst->mnem == DA64I_ADD_EXT) {
-        // 'add addrreg, base, lo, uxtw' is allowed.
         if (addrreg(v, dinst->ops[0].reg, true) && dinst->ops[0].reggp.sf == 1 && basereg(dinst->ops[1].reg) &&
                 dinst->ops[2].reggpext.ext == DA_EXT_UXTW &&
                 dinst->ops[2].reggpext.sf == 0 && dinst->ops[2].reggpext.shift == 0)
-            return true;
-    }
-
-    if (retreg(op->reg) && dinst->mnem == DA64I_LDR_IMM) {
-        // 'ldr x30, [rtsysreg, #n]' is allowed.
-        if (dinst->ops[1].type == DA_OP_MEMUOFF &&
-                rtsysreg(v, dinst->ops[1].reg))
-            return true;
-    }
-
-    if (retreg(op->reg) && dinst->mnem == DA64I_LDURX) {
-        // 'ldur x30, [rtsysreg, #n]' is allowed.
-        if (dinst->ops[1].type == DA_OP_MEMSOFF &&
-                rtsysreg(v, dinst->ops[1].reg))
             return true;
     }
 
@@ -416,6 +463,7 @@ bool lfiv_verify_arm64(char *code, size_t size, uintptr_t addr, struct LFIVOptio
     struct Verifier v = {
         .addr = addr,
         .opts = opts,
+        .x30_guarded = true,
     };
 
     for (size_t i = 0; i < size / INSN_SIZE; i++) {
@@ -424,6 +472,11 @@ bool lfiv_verify_arm64(char *code, size_t size, uintptr_t addr, struct LFIVOptio
         // Exit early if there is no error reporter.
         if (v.failed && v.opts->err == NULL)
             return false;
+    }
+
+    // Fail if x30 is unguarded at the end of the program
+    if (!v.x30_guarded) {
+        verrmin(&v, "x30 is unguarded at end of code");
     }
 
     return !v.failed;

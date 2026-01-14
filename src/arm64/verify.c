@@ -94,17 +94,28 @@ static bool retreg(uint8_t reg) {
     return reg == REG_RET;
 }
 
-// Check if instruction is the x30 guard: add x30, x27, w30, uxtw
+// Check if instruction is the x30 guard: add x30, x27, wN, uxtw
 static bool is_x30_guard(struct Da64Inst *dinst) {
     if (dinst->mnem != DA64I_ADD_EXT)
         return false;
     return dinst->ops[0].reg == REG_RET &&
            dinst->ops[0].reggp.sf == 1 &&
            basereg(dinst->ops[1].reg) &&
-           dinst->ops[2].reg == REG_RET &&
+           // any 32-bit register in the source slot is fine
            dinst->ops[2].reggpext.ext == DA_EXT_UXTW &&
            dinst->ops[2].reggpext.sf == 0 &&
            dinst->ops[2].reggpext.shift == 0;
+}
+
+// Check if instruction is ldr xzr, [x30] - validates x30 points to readable memory
+static bool is_x30_ldr_guard(struct Da64Inst *dinst) {
+    if (dinst->mnem != DA64I_LDR_IMM)
+        return false;
+    return dinst->ops[0].reg == 31 &&          // xzr
+           dinst->ops[0].reggp.sf == 1 &&      // 64-bit
+           dinst->ops[1].type == DA_OP_MEMUOFF &&
+           dinst->ops[1].reg == REG_RET &&     // x30
+           dinst->ops[1].uimm16 == 0;          // no offset
 }
 
 static bool fixedreg(struct Verifier *v, uint8_t reg) {
@@ -433,6 +444,11 @@ static void vchk(struct Verifier *v, uint32_t insn) {
 
     if (!okmnem(v, &dinst)) {
         verr(v, &dinst, "illegal instruction");
+        return;
+    }
+
+    // ldr xzr, [x30] - allowed for validating x30 points to readable memory
+    if (is_x30_ldr_guard(&dinst)) {
         return;
     }
 

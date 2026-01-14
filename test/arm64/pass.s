@@ -112,3 +112,8 @@ mov x30, x0
 add x30, x27, w30, uxtw
 cbz x0, foo
 foo:
+---
+add x30, x27, w26, uxtw
+ret
+---
+ldr xzr, [x30]

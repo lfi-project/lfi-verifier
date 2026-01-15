@@ -108,6 +108,8 @@ verify(struct LFIVerifier *v, const char *filename)
 
     size_t total = 0;
 
+    // Number of segments verified.
+    unsigned segments = 0;
     long long unsigned t1 = time_ns();
     for (int n = 0; n < args.n; n++) {
         for (int i = 0; i < ehdr.e_phnum; ++i) {
@@ -145,6 +147,7 @@ verify(struct LFIVerifier *v, const char *filename)
                     fprintf(stderr, "verification failed\n");
                     return false;
                 }
+                segments++;
 
                 total += phdr.p_filesz;
 
@@ -153,6 +156,11 @@ verify(struct LFIVerifier *v, const char *filename)
         }
     }
     long long unsigned elapsed = time_ns() - t1;
+
+    if (segments == 0) {
+        fprintf(stderr, "no executable program segments found\n");
+        goto err;
+    }
 
     fclose(file);
     printf("verification passed (%.1f MiB/s)\n", ((float) total / ((float) elapsed / 1000 / 1000 / 1000)) / 1024 / 1024);

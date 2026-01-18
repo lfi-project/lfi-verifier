@@ -125,11 +125,11 @@ ret
 ldr xzr, [x30]
 ---
 // flags: --ctxreg
-ldr x0, [x25]
+ldr x0, [x25, #32]
 ---
 // flags: --ctxreg
-str x0, [x25]
+str x0, [x25, #32]
 ---
 // flags: --ctxreg
-ldr x0, [x25]
-str x1, [x25]
+ldr x0, [x25, #32]
+str x1, [x25, #32]

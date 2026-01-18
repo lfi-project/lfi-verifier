@@ -131,9 +131,13 @@ mov %rax, %r15
 movl (%r15), %eax
 ---
 // flags: --ctxreg
-// r15 with displacement is not allowed
+// r15 with wrong displacement is not allowed
 movq 8(%r15), %rax
 ---
 // flags: --ctxreg
+// r15 with zero displacement is not allowed
+movq (%r15), %rax
+---
+// flags: --ctxreg
 // only mov is allowed with r15, not add
-addq (%r15), %rax
+addq 32(%r15), %rax

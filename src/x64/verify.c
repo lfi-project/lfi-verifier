@@ -161,14 +161,14 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
             if (FD_ADDRSIZE(instr) != 8)
                 verr(v, instr, "non-segmented memory access must use 64-bit address");
 
-            // Context register (r15): only allow movq (%r15), %rX or movq %rX, (%r15)
+            // Context register (r15): only allow movq 32(%r15), %rX or movq %rX, 32(%r15)
             if (v->opts->ctxreg && FD_OP_BASE(instr, i) == FD_REG_R15) {
                 if (FD_TYPE(instr) != FDI_MOV)
                     verr(v, instr, "context register can only be used with mov");
                 if (FD_OP_SIZE(instr, i) != 8)
                     verr(v, instr, "context register can only be used with 64-bit mov");
-                if (FD_OP_DISP(instr, i) != 0)
-                    verr(v, instr, "context register memory access must have zero displacement");
+                if (FD_OP_DISP(instr, i) != 32)
+                    verr(v, instr, "context register memory access must have displacement of 32");
                 if (FD_OP_INDEX(instr, i) != FD_REG_NONE)
                     verr(v, instr, "context register memory access cannot have index register");
                 continue;

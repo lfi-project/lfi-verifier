@@ -142,9 +142,13 @@ mov x25, x0
 ldr w0, [x25]
 ---
 // flags: --ctxreg
-// x25 with offset is not allowed
+// x25 with wrong offset is not allowed
 ldr x0, [x25, #8]
 ---
 // flags: --ctxreg
+// x25 with zero offset is not allowed
+ldr x0, [x25]
+---
+// flags: --ctxreg
 // ldur is not allowed, only ldr/str
-ldur x0, [x25]
+ldur x0, [x25, #32]

@@ -319,9 +319,9 @@ static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
         // runtime call
         if (rtsysreg(v, op->reg) && okrtcallimm(op->simm16))
             return true;
-        // context register: only allow [x25] with zero offset
+        // context register: only allow [x25, #32]
         if (ctxreg(v, op->reg))
-            return op->uimm16 == 0;
+            return op->uimm16 == 32;
         return ldstreg(v, op->reg, true);
     case DA_OP_MEMSOFFPRE:
     case DA_OP_MEMSOFFPOST:

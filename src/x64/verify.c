@@ -59,7 +59,7 @@ static int nmod(FdInstr *instr) {
 // Check whether a particular register is reserved under the current
 // verification configuration.
 // Accounts for reads vs writes.
-static bool reserved(FdInstr *instr, int op_index) {
+static bool reserved(struct Verifier *v, FdInstr *instr, int op_index) {
     // Allow all vector registers.
     if (FD_OP_REG_TYPE(instr, op_index) == FD_RT_VEC)
         return false;
@@ -75,6 +75,11 @@ static bool reserved(FdInstr *instr, int op_index) {
     bool is_read_op = nmod(instr) <= op_index;
 
     if (reg == FD_REG_R14 || reg == FD_REG_SP) {
+        return !is_read_op;
+    }
+
+    // Context register (r15) cannot be modified when ctxreg is enabled
+    if (v->opts->ctxreg && reg == FD_REG_R15) {
         return !is_read_op;
     }
 
@@ -155,6 +160,20 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
 
             if (FD_ADDRSIZE(instr) != 8)
                 verr(v, instr, "non-segmented memory access must use 64-bit address");
+
+            // Context register (r15): only allow movq (%r15), %rX or movq %rX, (%r15)
+            if (v->opts->ctxreg && FD_OP_BASE(instr, i) == FD_REG_R15) {
+                if (FD_TYPE(instr) != FDI_MOV)
+                    verr(v, instr, "context register can only be used with mov");
+                if (FD_OP_SIZE(instr, i) != 8)
+                    verr(v, instr, "context register can only be used with 64-bit mov");
+                if (FD_OP_DISP(instr, i) != 0)
+                    verr(v, instr, "context register memory access must have zero displacement");
+                if (FD_OP_INDEX(instr, i) != FD_REG_NONE)
+                    verr(v, instr, "context register memory access cannot have index register");
+                continue;
+            }
+
             if (FD_OP_BASE(instr, i) != FD_REG_SP &&
                     FD_OP_BASE(instr, i) != FD_REG_IP &&
                     FD_OP_BASE(instr, i) != FD_REG_R14)
@@ -170,7 +189,7 @@ static void chkmod(struct Verifier *v, FdInstr *instr) {
         return;
 
     for (size_t i = 0; i < 4; i++) {
-        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(instr, i))
+        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(v, instr, i))
             verr(v, instr, "modification of reserved register");
     }
 }

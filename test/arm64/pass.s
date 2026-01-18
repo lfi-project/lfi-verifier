@@ -78,6 +78,12 @@ paciasp
 ---
 ldur x30, [x27, #-8]
 ---
+ldur x30, [x27, #-16]
+---
+ldur x30, [x27, #-24]
+---
+ldur x30, [x27, #-32]
+---
 // x30 modification followed by guard and ret
 mov x30, x0
 add x30, x27, w30, uxtw
@@ -117,3 +123,13 @@ add x30, x27, w26, uxtw
 ret
 ---
 ldr xzr, [x30]
+---
+// flags: --ctxreg
+ldr x0, [x25]
+---
+// flags: --ctxreg
+str x0, [x25]
+---
+// flags: --ctxreg
+ldr x0, [x25]
+str x1, [x25]

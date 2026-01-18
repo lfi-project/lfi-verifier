@@ -132,3 +132,19 @@ foo:
 ---
 // x30 is not guaranteed to always be in a valid state, so moving to x28 is not allowed
 mov x28, x30
+---
+// flags: --ctxreg
+// modification of x25 is not allowed
+mov x25, x0
+---
+// flags: --ctxreg
+// non-64-bit load from x25 is not allowed
+ldr w0, [x25]
+---
+// flags: --ctxreg
+// x25 with offset is not allowed
+ldr x0, [x25, #8]
+---
+// flags: --ctxreg
+// ldur is not allowed, only ldr/str
+ldur x0, [x25]

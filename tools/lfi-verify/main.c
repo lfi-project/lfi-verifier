@@ -187,6 +187,7 @@ static void usage(const char *prog)
             "  -n, --n=NUM             run the verifier n times (for benchmarking)\n"
             "  -s, --sandbox=TYPE      select sandbox type (full,stores)\n"
             "      --no-bdd            disable the BDD filter (x86-64)\n"
+            "      --ctxreg            enable context register (x25 on arm64, r15 on x64)\n"
             , prog);
     exit(1);
 }
@@ -202,6 +203,7 @@ main(int argc, char **argv)
         {"n", required_argument, 0, 'n'},
         {"sandbox", required_argument, 0, 's'},
         {"no-bdd", no_argument, 0, 0},
+        {"ctxreg", no_argument, 0, 0},
         {0, 0, 0, 0}
     };
 
@@ -235,6 +237,8 @@ main(int argc, char **argv)
         case 0:
             if (strcmp(long_options[long_index].name, "no-bdd") == 0) {
                 opts.no_bdd = true;
+            } else if (strcmp(long_options[long_index].name, "ctxreg") == 0) {
+                opts.ctxreg = true;
             }
             break;
         }

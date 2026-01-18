@@ -121,3 +121,19 @@ movq %rax, (%rdi)
 movq (%r14, %rax), %rdi
 ---
 movq (%rsp, %r14), %rdi
+---
+// flags: --ctxreg
+// modification of r15 is not allowed
+mov %rax, %r15
+---
+// flags: --ctxreg
+// non-64-bit mov from r15 is not allowed
+movl (%r15), %eax
+---
+// flags: --ctxreg
+// r15 with displacement is not allowed
+movq 8(%r15), %rax
+---
+// flags: --ctxreg
+// only mov is allowed with r15, not add
+addq (%r15), %rax

@@ -16,6 +16,11 @@ struct LFIVOptions {
     // Disable BDD filter (x86-64).
     bool no_bdd;
 
+    // Enable context register (x25 on arm64, r15 on x64).
+    // When enabled, the context register is reserved (cannot be modified)
+    // and can only be used for 64-bit loads/stores from the address it holds.
+    bool ctxreg;
+
     // Callback to print a null-terminated error message if verification fails.
     void (*err)(char *msg, size_t size);
 };

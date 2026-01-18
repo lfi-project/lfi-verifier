@@ -89,4 +89,26 @@ leaq 1f(%rip), %r11
 jmpq *-8(%r14)
 1:
 ---
+leaq 1f(%rip), %r11
+jmpq *-16(%r14)
+1:
+---
+leaq 1f(%rip), %r11
+jmpq *-24(%r14)
+1:
+---
+leaq 1f(%rip), %r11
+jmpq *-32(%r14)
+1:
+---
 movq 8(%r14), %rdi
+---
+// flags: --ctxreg
+movq (%r15), %rax
+---
+// flags: --ctxreg
+movq %rax, (%r15)
+---
+// flags: --ctxreg
+movq (%r15), %rdi
+movq %rsi, (%r15)

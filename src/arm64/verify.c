@@ -65,6 +65,7 @@ enum {
     REG_ADDR    = 28,
     REG_BASE    = 27,
     REG_RET     = 30,
+    REG_CTX     = 25,
 };
 
 enum {
@@ -94,6 +95,10 @@ static bool retreg(uint8_t reg) {
     return reg == REG_RET;
 }
 
+static bool ctxreg(struct Verifier *v, uint8_t reg) {
+    return v->opts->ctxreg && reg == REG_CTX;
+}
+
 // Check if instruction is the x30 guard: add x30, x27, wN, uxtw
 static bool is_x30_guard(struct Da64Inst *dinst) {
     if (dinst->mnem != DA64I_ADD_EXT)
@@ -120,6 +125,8 @@ static bool is_x30_ldr_guard(struct Da64Inst *dinst) {
 
 static bool fixedreg(struct Verifier *v, uint8_t reg) {
     if (reg == REG_BASE)
+        return true;
+    if (ctxreg(v, reg))
         return true;
     return false;
 }
@@ -312,6 +319,9 @@ static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
         // runtime call
         if (rtsysreg(v, op->reg) && okrtcallimm(op->simm16))
             return true;
+        // context register: only allow [x25] with zero offset
+        if (ctxreg(v, op->reg))
+            return op->uimm16 == 0;
         return ldstreg(v, op->reg, true);
     case DA_OP_MEMSOFFPRE:
     case DA_OP_MEMSOFFPOST:
@@ -335,11 +345,27 @@ static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
     }
 }
 
+// Check if instruction is a valid 64-bit load/store for context register usage
+static bool ok_ctxreg_ldst(struct Da64Inst *dinst) {
+    switch (dinst->mnem) {
+    case DA64I_LDR_IMM:  // ldr xN, [x25]
+    case DA64I_STR_IMM:  // str xN, [x25]
+        return true;
+    default:
+        return false;
+    }
+}
+
 static void chkmemops(struct Verifier *v, struct Da64Inst *dinst) {
     bool load = isload(v, dinst);
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
         if (!okmemop(v, &dinst->ops[i], load))
             verr(v, dinst, "illegal memory operand");
+        // Check that x25 is only used with valid 64-bit load/store
+        if (dinst->ops[i].type == DA_OP_MEMUOFF || dinst->ops[i].type == DA_OP_MEMSOFF) {
+            if (ctxreg(v, dinst->ops[i].reg) && !ok_ctxreg_ldst(dinst))
+                verr(v, dinst, "context register can only be used with 64-bit ldr/str");
+        }
     }
 }
 

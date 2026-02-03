@@ -49,6 +49,7 @@ enum {
 };
 
 #define INSN_NOP       0xd503201f
+#define INSN_YIELD     0xd503203f
 #define INSN_AUTIA1716 0xd503219f
 #define INSN_AUTIB1716 0xd50321df
 #define INSN_AUTIASP   0xd50323bf
@@ -72,11 +73,14 @@ enum {
     SYS_tpidr_el0        = 0xde82,
     SYS_fpsr             = 0xda21,
     SYS_fpcr             = 0xda20,
+    SYS_dczid_el0        = 0xd807, // DC ZVA block size
     SYS_id_aa64pfr0_el1  = 0xc020,
     SYS_id_aa64pfr1_el1  = 0xc021,
     SYS_id_aa64zfr0_el1  = 0xc024, // requires SVE
     SYS_id_aa64isar0_el1 = 0xc030,
     SYS_id_aa64isar1_el1 = 0xc031,
+    // DC (data cache) operations (encoded with 01 prefix in bits 15:14)
+    SYS_dc_zva           = 0x5ba1, // DC ZVA - zero cache line
 };
 
 static bool cfreg(struct Verifier *v, uint8_t reg) {
@@ -152,6 +156,7 @@ static bool addrreg(struct Verifier *v, uint8_t reg, bool sp) {
 static bool sysreg(uint16_t sysreg) {
     return sysreg == SYS_fpsr ||
         sysreg == SYS_fpcr ||
+        sysreg == SYS_dczid_el0 ||
         sysreg == SYS_id_aa64pfr0_el1 ||
         sysreg == SYS_id_aa64pfr1_el1 ||
         sysreg == SYS_id_aa64zfr0_el1 ||
@@ -275,6 +280,18 @@ static void chksys(struct Verifier *v, struct Da64Inst *dinst) {
         assert(dinst->ops[1].type == DA_OP_SYSREG);
         if (!sysreg(dinst->ops[1].sysreg))
             verr(v, dinst, "read from illegal sysreg");
+        break;
+    case DA64I_SYS:
+        // Only allow DC ZVA with x28 (sandbox address register)
+        if (dinst->ops[0].type != DA_OP_SYSREG || dinst->ops[0].sysreg != SYS_dc_zva) {
+            verr(v, dinst, "illegal system instruction");
+            break;
+        }
+        // DC ZVA must use x28
+        assert(dinst->ops[1].type == DA_OP_REGGP);
+        if (dinst->ops[1].reg != REG_ADDR) {
+            verr(v, dinst, "dc zva must use x28");
+        }
         break;
     }
 }
@@ -446,6 +463,7 @@ static void chkwriteback(struct Verifier *v, struct Da64Inst *dinst) {
 static void vchk(struct Verifier *v, uint32_t insn) {
     switch (insn) {
     case INSN_NOP:
+    case INSN_YIELD:
     case INSN_AUTIA1716:
     case INSN_AUTIB1716:
     case INSN_AUTIASP:

@@ -84,7 +84,7 @@ case DA64I_EXTR:
 case DA64I_MOVN:
 case DA64I_MOVZ:
 case DA64I_MOVK:
-// case DA64I_SYS:
+case DA64I_SYS:
 // case DA64I_SYSL:
 case DA64I_MSR:
 case DA64I_MRS:

@@ -133,3 +133,9 @@ str x0, [x25, #32]
 // flags: --ctxreg
 ldr x0, [x25, #32]
 str x1, [x25, #32]
+---
+yield
+---
+dc zva, x28
+---
+mrs x0, dczid_el0

@@ -152,3 +152,6 @@ ldr x0, [x25]
 // flags: --ctxreg
 // ldur is not allowed, only ldr/str
 ldur x0, [x25, #32]
+---
+// dc zva with wrong register
+dc zva, x0

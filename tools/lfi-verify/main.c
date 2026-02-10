@@ -99,8 +99,7 @@ verify(struct LFIVerifier *v, const char *filename)
         }
 
         if (shdr.sh_type == SHT_ANDROID_RELR) {
-            fprintf(stderr, "error: SHT_ANDROID_RELR section is not supported\n");
-            goto err;
+            fprintf(stderr, "warning: SHT_ANDROID_RELR section might not be supported by your libc\n");
         }
     }
 

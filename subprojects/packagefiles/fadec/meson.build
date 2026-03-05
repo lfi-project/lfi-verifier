@@ -1,3 +1,6 @@
+project('fadec', ['c'], default_options: ['warning_level=3', 'c_std=c11'],
+        meson_version: '>=0.49')
+
 python3 = find_program('python3')
 
 # Check Python version
@@ -72,3 +75,5 @@ libfadec = static_library('fadec', sources, tables, install: true)
 fadec = declare_dependency(link_with: libfadec,
                            include_directories: include_directories('.'),
                            sources: tables)
+
+meson.override_dependency('fadec', fadec)

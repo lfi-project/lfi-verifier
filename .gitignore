@@ -1,3 +1,5 @@
 subprojects/argtable3
+subprojects/fadec
+subprojects/disarm
 
 .cache

@@ -1,3 +1,6 @@
+project('disarm64', ['c'], default_options: ['warning_level=3', 'c_std=c11'],
+        meson_version: '>=0.54')
+
 python3 = find_program('python3')
 
 # Check Python version
@@ -28,3 +31,4 @@ libdisarm64 = static_library('disarm64', 'classify.c', 'decode.c', 'encode.c', '
 disarm64 = declare_dependency(link_with: libdisarm64,
                               include_directories: include_directories('.'),
                               sources: instr_data)
+meson.override_dependency('disarm64', disarm64)

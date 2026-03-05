@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/aengelke/fadec.git
+revision = 682f9f192950a16c9af795323578b506dbd8450a
+directory = fadec
+patch_directory = fadec

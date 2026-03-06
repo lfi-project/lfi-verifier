@@ -50,6 +50,8 @@ static int nmod(FdInstr *instr) {
     case FDI_TEST:
         return 0;
     case FDI_XCHG:
+    case FDI_MULX:
+    case FDI_XADD:
         return 2;
     default:
         return 1;

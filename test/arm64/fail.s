@@ -155,3 +155,7 @@ ldur x0, [x25, #32]
 ---
 // dc zva with wrong register
 dc zva, x0
+---
+// flags: --sandbox=stores
+// register post-index writeback modifies base register by arbitrary amount
+ld1 {v0.8b}, [x28], x1

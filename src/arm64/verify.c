@@ -350,8 +350,6 @@ static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
             return true;
         return basereg(op->reg) && op->memreg.ext == DA_EXT_UXTW && op->memreg.sc == 0;
     case DA_OP_MEMREGPOST:
-        if (load && storesonly)
-            return !fixedreg(v, op->reg);
         return false;
     case DA_OP_MEMINC:
         if (load && storesonly)

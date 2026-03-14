@@ -148,8 +148,8 @@ mulx %eax, %esp, %ebx
 // xadd: two destinations
 xadd %esp, %eax
 ---
-// bare stos without sandboxing sequence
 stosq
 ---
-// bare movs without sandboxing sequence
 movsq
+---
+cmpsq

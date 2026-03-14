@@ -125,6 +125,75 @@ static struct MacroInst macroinst_movs(struct Verifier *v, FdInstr *first, uint8
     return (struct MacroInst){offset, 5};
 }
 
+static struct MacroInst macroinst_cmps(struct Verifier *v, FdInstr *first, uint8_t *buf, size_t size) {
+    // cmps becomes:
+    //
+    // movl %edi, %edi
+    // leaq (%r14, %rdi), %rdi
+    // movl %esi, %esi
+    // leaq (%r14, %rsi), %rsi
+    // cmps
+
+    size_t offset = 0;
+
+    FdInstr i_mov = *first;
+    offset += i_mov.size;
+    if (FD_TYPE(&i_mov) != FDI_MOV ||
+        !assert_reg(&i_mov, 0, FD_REG_DI, 4) ||
+        !assert_reg(&i_mov, 1, FD_REG_DI, 4)) {
+        return (struct MacroInst){-1, 0};
+    }
+
+    FdInstr i_lea, i_mov2, i_lea2, i_cmps;
+    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_lea) < 0) {
+        return (struct MacroInst){-1, 0};
+    }
+    offset += i_lea.size;
+    if (FD_TYPE(&i_lea) != FDI_LEA ||
+        !assert_reg(&i_lea, 0, FD_REG_DI, 8) ||
+        FD_OP_TYPE(&i_lea, 1) != FD_OT_MEM ||
+        FD_OP_BASE(&i_lea, 1) != FD_REG_R14 ||
+        FD_OP_INDEX(&i_lea, 1) != FD_REG_DI ||
+        FD_OP_DISP(&i_lea, 1) != 0 ||
+        FD_OP_SCALE(&i_lea, 1) != 0){
+        return (struct MacroInst){-1, 0};
+    }
+
+    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_mov2) < 0) {
+        return (struct MacroInst){-1, 0};
+    }
+    offset += i_mov2.size;
+    if (FD_TYPE(&i_mov2) != FDI_MOV ||
+        !assert_reg(&i_mov2, 0, FD_REG_SI, 4) ||
+        !assert_reg(&i_mov2, 1, FD_REG_SI, 4)) {
+        return (struct MacroInst){-1, 0};
+    }
+
+    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_lea2) < 0) {
+        return (struct MacroInst){-1, 0};
+    }
+    offset += i_lea2.size;
+    if (FD_TYPE(&i_lea2) != FDI_LEA ||
+        !assert_reg(&i_lea2, 0, FD_REG_SI, 8) ||
+        FD_OP_TYPE(&i_lea2, 1) != FD_OT_MEM ||
+        FD_OP_BASE(&i_lea2, 1) != FD_REG_R14 ||
+        FD_OP_INDEX(&i_lea2, 1) != FD_REG_SI ||
+        FD_OP_DISP(&i_lea2, 1) != 0 ||
+        FD_OP_SCALE(&i_lea2, 1) != 0){
+        return (struct MacroInst){-1, 0};
+    }
+
+    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_cmps) < 0) {
+        return (struct MacroInst){-1, 0};
+    }
+    offset += i_cmps.size;
+    if (FD_TYPE(&i_cmps) != FDI_CMPS) {
+        return (struct MacroInst){-1, 0};
+    }
+
+    return (struct MacroInst){offset, 5};
+}
+
 static struct MacroInst macroinst_jmp(struct Verifier *v, FdInstr *first, uint8_t *buf, size_t size) {
     // andl $0xffffffe0, %eX
     // addq %r14, %rX (or orq)
@@ -359,6 +428,7 @@ static struct MacroInst macroinst(struct Verifier *v, FdInstr *first, uint8_t *b
     MACROINST(macroinst_modsp);
     MACROINST(macroinst_stos);
     MACROINST(macroinst_movs);
+    MACROINST(macroinst_cmps);
     MACROINST(macroinst_rtcall);
 
     return (struct MacroInst){-1, 0};

@@ -112,3 +112,15 @@ movq %rax, 32(%r15)
 // flags: --ctxreg
 movq 32(%r15), %rdi
 movq %rsi, 32(%r15)
+---
+// stos macroinstruction
+movl %edi, %edi
+leaq (%r14, %rdi), %rdi
+rep stosq
+---
+// movs macroinstruction
+movl %edi, %edi
+leaq (%r14, %rdi), %rdi
+movl %esi, %esi
+leaq (%r14, %rsi), %rsi
+rep movsq

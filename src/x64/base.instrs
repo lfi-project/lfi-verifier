@@ -1056,7 +1056,7 @@ case FDI_MOVABS:
 // case FDI_MOVDIR64B:
 // case FDI_MOVDIRI:
 // case FDI_MOVNTI:
-case FDI_MOVS:
+// case FDI_MOVS:
 case FDI_MOVSX:
 case FDI_MOVZX:
 // case FDI_MOV_CR:
@@ -1426,7 +1426,7 @@ case FDI_STD:
 // case FDI_STGI:
 // case FDI_STI:
 // case FDI_STMXCSR:
-case FDI_STOS:
+// case FDI_STOS:
 // case FDI_STR:
 // case FDI_STTILECFG:
 // case FDI_STUI:

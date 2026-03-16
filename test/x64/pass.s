@@ -104,14 +104,14 @@ jmpq *-32(%r14)
 movq 8(%r14), %rdi
 ---
 // flags: --ctxreg
-movq 32(%r15), %rax
+movq 16(%r15), %rax
 ---
 // flags: --ctxreg
-movq %rax, 32(%r15)
+movq %rax, 16(%r15)
 ---
 // flags: --ctxreg
-movq 32(%r15), %rdi
-movq %rsi, 32(%r15)
+movq 16(%r15), %rdi
+movq %rsi, 16(%r15)
 ---
 movl %edi, %edi
 leaq (%r14, %rdi), %rdi

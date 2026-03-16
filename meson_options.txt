@@ -7,3 +7,8 @@ option('code_bdd',
   type: 'boolean',
   value: false,
   description: 'embed the x64 BDD as code rather than data (faster performance, longer build time)')
+
+option('ctxreg_tp_offset',
+  type: 'integer',
+  value: 16,
+  description: 'offset for context register TP memory accesses')

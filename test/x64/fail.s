@@ -140,7 +140,7 @@ movq (%r15), %rax
 ---
 // flags: --ctxreg
 // only mov is allowed with r15, not add
-addq 32(%r15), %rax
+addq 16(%r15), %rax
 ---
 // mulx: two destinations
 mulx %eax, %esp, %ebx

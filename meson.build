@@ -28,7 +28,7 @@ arch = arch_raw.split(',')
 
 dependencies = []
 srcs = []
-c_defines = []
+c_defines = ['-DCTXREG_TP_OFFSET=' + get_option('ctxreg_tp_offset').to_string()]
 
 if 'arm64' in arch
   dependencies += subproject('disarm').get_variable('disarm64').as_link_whole()

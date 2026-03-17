@@ -9,6 +9,10 @@
 #include "lfiv.h"
 #include "disarm64.h"
 
+#ifndef CTXREG_TP_OFFSET
+#define CTXREG_TP_OFFSET 16
+#endif
+
 struct Verifier {
     bool failed;
     bool abort;

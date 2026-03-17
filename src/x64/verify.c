@@ -7,6 +7,10 @@
 #include "lfiv.h"
 #include "fadec.h"
 
+#ifndef CTXREG_TP_OFFSET
+#define CTXREG_TP_OFFSET 16
+#endif
+
 extern uint8_t lfi_x86_bdd(uint8_t *);
 
 struct Verifier {

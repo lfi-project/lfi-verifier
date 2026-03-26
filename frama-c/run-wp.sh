@@ -17,4 +17,5 @@ frama-c -wp -wp-rte \
   -wp-par 16 \
   -wp-skip-fct verrmin,verr,da64_decode,da64_format \
   -wp-fct "$FCTS" \
+  -wp-smoke-tests \
   2>&1

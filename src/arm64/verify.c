@@ -620,8 +620,7 @@ static void vchk(struct Verifier *v, uint32_t insn) {
     chkwriteback(v, &dinst);
 }
 
-/*@ requires size % 4 == 0;
-    requires size == 0 || \valid_read(((uint32_t*)code) + (0 .. size / 4 - 1));
+/*@ requires size == 0 || \valid_read(((uint32_t*)code) + (0 .. size / 4 - 1));
     requires \valid(opts);
     assigns \nothing;
 */

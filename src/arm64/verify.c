@@ -25,6 +25,10 @@ enum {
     ERRMAX = 128, // maximum size for error
 };
 
+/*@ requires \valid(v);
+    requires \valid_read(v->opts);
+    assigns v->failed;
+*/
 static void verrmin(struct Verifier *v, const char* fmt, ...) {
     v->failed = true;
 
@@ -42,6 +46,11 @@ static void verrmin(struct Verifier *v, const char* fmt, ...) {
     v->opts->err(errbuf, strlen(errbuf));
 }
 
+/*@ requires \valid(v);
+    requires \valid_read(v->opts);
+    requires \valid(inst);
+    assigns v->failed;
+*/
 static void verr(struct Verifier *v, struct Da64Inst *inst, const char* msg) {
     char fmtbuf[128];
     da64_format(inst, fmtbuf);
@@ -87,26 +96,37 @@ enum {
     SYS_dc_zva           = 0x5ba1, // DC ZVA - zero cache line
 };
 
+/*@ assigns \nothing; */
 static bool cfreg(struct Verifier *v, uint8_t reg) {
     return reg == REG_ADDR || reg == REG_RET;
 }
 
+/*@ assigns \nothing; */
 static bool rtsysreg(struct Verifier *v, uint8_t reg) {
     return reg == REG_BASE;
 }
 
+/*@ assigns \nothing; */
 static bool basereg(uint8_t reg) {
     return reg == REG_BASE;
 }
 
+/*@ assigns \nothing; */
 static bool retreg(uint8_t reg) {
     return reg == REG_RET;
 }
 
+/*@ requires \valid_read(v);
+    requires \valid_read(v->opts);
+    assigns \nothing;
+*/
 static bool ctxreg(struct Verifier *v, uint8_t reg) {
     return v->opts->ctxreg && reg == REG_CTX;
 }
 
+/*@ requires \valid_read(dinst);
+    assigns \nothing;
+*/
 // Check if instruction is the x30 guard: add x30, x27, wN, uxtw
 static bool is_x30_guard(struct Da64Inst *dinst) {
     if (dinst->mnem != DA64I_ADD_EXT)
@@ -120,6 +140,9 @@ static bool is_x30_guard(struct Da64Inst *dinst) {
            dinst->ops[2].reggpext.shift == 0;
 }
 
+/*@ requires \valid_read(dinst);
+    assigns \nothing;
+*/
 // Check if instruction is ldr xzr, [x30] - validates x30 points to readable memory
 static bool is_x30_ldr_guard(struct Da64Inst *dinst) {
     if (dinst->mnem != DA64I_LDR_IMM)
@@ -131,6 +154,10 @@ static bool is_x30_ldr_guard(struct Da64Inst *dinst) {
            dinst->ops[1].uimm16 == 0;          // no offset
 }
 
+/*@ requires \valid_read(v);
+    requires \valid_read(v->opts);
+    assigns \nothing;
+*/
 static bool fixedreg(struct Verifier *v, uint8_t reg) {
     if (reg == REG_BASE)
         return true;
@@ -139,6 +166,10 @@ static bool fixedreg(struct Verifier *v, uint8_t reg) {
     return false;
 }
 
+/*@ requires \valid_read(v);
+    requires \valid_read(v->opts);
+    assigns \nothing;
+*/
 static bool ldstreg(struct Verifier *v, uint8_t reg, bool sp) {
     if (sp && reg == 31)
         return true;
@@ -147,6 +178,10 @@ static bool ldstreg(struct Verifier *v, uint8_t reg, bool sp) {
     return false;
 }
 
+/*@ requires \valid_read(v);
+    requires \valid_read(v->opts);
+    assigns \nothing;
+*/
 static bool addrreg(struct Verifier *v, uint8_t reg, bool sp) {
     if (sp && reg == 31)
         return true;
@@ -157,6 +192,7 @@ static bool addrreg(struct Verifier *v, uint8_t reg, bool sp) {
     return false;
 }
 
+/*@ assigns \nothing; */
 static bool sysreg(uint16_t sysreg) {
     return sysreg == SYS_fpsr ||
         sysreg == SYS_fpcr ||
@@ -168,6 +204,9 @@ static bool sysreg(uint16_t sysreg) {
         sysreg == SYS_id_aa64isar1_el1;
 }
 
+/*@ requires \valid_read(dinst);
+    assigns \nothing;
+*/
 // returns a bitmask of modified operands
 static uint8_t nmod(struct Da64Inst *dinst) {
     switch (DA64_GROUP(dinst->mnem)) {
@@ -230,6 +269,11 @@ static uint8_t nmod(struct Da64Inst *dinst) {
     return 0b1;
 }
 
+/*@ requires \valid(v);
+    requires \valid_read(v->opts);
+    requires \valid(dinst);
+    assigns v->failed;
+*/
 static void chkbranch(struct Verifier *v, struct Da64Inst *dinst) {
     switch (dinst->mnem) {
     case DA64I_BLR:
@@ -273,6 +317,11 @@ static void chkbranch(struct Verifier *v, struct Da64Inst *dinst) {
     }
 }
 
+/*@ requires \valid(v);
+    requires \valid_read(v->opts);
+    requires \valid(dinst);
+    assigns v->failed;
+*/
 static void chksys(struct Verifier *v, struct Da64Inst *dinst) {
     switch (dinst->mnem) {
     case DA64I_MSR:
@@ -300,6 +349,11 @@ static void chksys(struct Verifier *v, struct Da64Inst *dinst) {
     }
 }
 
+/*@ requires \valid_read(v);
+    requires \valid_read(v->opts);
+    requires \valid_read(dinst);
+    assigns \nothing;
+*/
 static bool isload(struct Verifier *v, struct Da64Inst *dinst) {
     switch (dinst->mnem) {
 #include "loads.instrs"
@@ -307,6 +361,11 @@ static bool isload(struct Verifier *v, struct Da64Inst *dinst) {
     return false;
 }
 
+/*@ requires \valid_read(v);
+    requires \valid_read(v->opts);
+    requires \valid_read(dinst);
+    assigns \nothing;
+*/
 static bool okmnem(struct Verifier *v, struct Da64Inst *dinst) {
     switch (dinst->mnem) {
 #include "base.instrs"
@@ -315,6 +374,7 @@ static bool okmnem(struct Verifier *v, struct Da64Inst *dinst) {
     return false;
 }
 
+/*@ assigns \nothing; */
 static bool okrtcallimm(int16_t simm16) {
     switch (simm16) {
     case 0:
@@ -330,6 +390,11 @@ static bool okrtcallimm(int16_t simm16) {
     return false;
 }
 
+/*@ requires \valid_read(v);
+    requires \valid_read(v->opts);
+    requires \valid_read(op);
+    assigns \nothing;
+*/
 static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
     bool storesonly = v->opts->box == LFI_BOX_STORES;
     switch (op->type) {
@@ -364,6 +429,9 @@ static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
     }
 }
 
+/*@ requires \valid_read(dinst);
+    assigns \nothing;
+*/
 // Check if instruction is a valid 64-bit load/store for context register usage
 static bool ok_ctxreg_ldst(struct Da64Inst *dinst) {
     switch (dinst->mnem) {
@@ -375,8 +443,17 @@ static bool ok_ctxreg_ldst(struct Da64Inst *dinst) {
     }
 }
 
+/*@ requires \valid(v);
+    requires \valid_read(v->opts);
+    requires \valid(dinst);
+    assigns v->failed;
+*/
 static void chkmemops(struct Verifier *v, struct Da64Inst *dinst) {
     bool load = isload(v, dinst);
+    /*@ loop invariant 0 <= i <= 5;
+        loop assigns i, v->failed;
+        loop variant 5 - i;
+    */
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
         if (!okmemop(v, &dinst->ops[i], load))
             verr(v, dinst, "illegal memory operand");
@@ -388,6 +465,12 @@ static void chkmemops(struct Verifier *v, struct Da64Inst *dinst) {
     }
 }
 
+/*@ requires \valid(v);
+    requires \valid_read(v->opts);
+    requires \valid(dinst);
+    requires \valid_read(op);
+    assigns v->failed, v->x30_guarded;
+*/
 static bool okmod(struct Verifier *v, struct Da64Inst *dinst, struct Da64Op *op) {
     if (op->type != DA_OP_REGGP &&
         op->type != DA_OP_REGGPINC &&
@@ -437,9 +520,18 @@ static bool okmod(struct Verifier *v, struct Da64Inst *dinst, struct Da64Op *op)
     return false;
 }
 
+/*@ requires \valid(v);
+    requires \valid_read(v->opts);
+    requires \valid(dinst);
+    assigns v->failed;
+*/
 static void chkwriteback(struct Verifier *v, struct Da64Inst *dinst) {
-    uint8_t memreg;
+    uint8_t memreg = 0;
     bool prepost = false;
+    /*@ loop invariant 0 <= i <= 5;
+        loop assigns i, memreg, prepost;
+        loop variant 5 - i;
+    */
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
         struct Da64Op *op = &dinst->ops[i];
         switch (op->type) {
@@ -453,6 +545,10 @@ static void chkwriteback(struct Verifier *v, struct Da64Inst *dinst) {
     }
     if (!prepost)
         return;
+    /*@ loop invariant 0 <= i <= 5;
+        loop assigns i, v->failed;
+        loop variant 5 - i;
+    */
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
         struct Da64Op *op = &dinst->ops[i];
         if (op->type == DA_OP_REGGP && op->reg == memreg && op->reg != 31) {
@@ -462,6 +558,10 @@ static void chkwriteback(struct Verifier *v, struct Da64Inst *dinst) {
     }
 }
 
+/*@ requires \valid(v);
+    requires \valid_read(v->opts);
+    assigns v->failed, v->x30_guarded;
+*/
 static void vchk(struct Verifier *v, uint32_t insn) {
     switch (insn) {
     case INSN_NOP:
@@ -503,6 +603,10 @@ static void vchk(struct Verifier *v, uint32_t insn) {
     chkmemops(v, &dinst);
 
     uint8_t mask = nmod(&dinst);
+    /*@ loop invariant 0 <= i <= 5;
+        loop assigns i, v->failed, v->x30_guarded;
+        loop variant 5 - i;
+    */
     for (int i = 0; i < sizeof(dinst.ops) / sizeof(struct Da64Op); i++) {
         if (((mask >> i) & 1) == 1)
             if (!okmod(v, &dinst, &dinst.ops[i]))
@@ -516,6 +620,11 @@ static void vchk(struct Verifier *v, uint32_t insn) {
     chkwriteback(v, &dinst);
 }
 
+/*@ requires size % 4 == 0;
+    requires size == 0 || \valid_read(((uint32_t*)code) + (0 .. size / 4 - 1));
+    requires \valid(opts);
+    assigns \nothing;
+*/
 bool lfiv_verify_arm64(char *code, size_t size, uintptr_t addr, struct LFIVOptions *opts) {
     if (size % INSN_SIZE != 0)
         return false;
@@ -528,6 +637,13 @@ bool lfiv_verify_arm64(char *code, size_t size, uintptr_t addr, struct LFIVOptio
         .x30_guarded = true,
     };
 
+    /*@ loop invariant 0 <= i <= size / 4;
+        loop invariant \valid_read(insns + (0 .. size / 4 - 1));
+        loop invariant \valid_read(v.opts);
+        loop invariant v.opts == opts;
+        loop assigns i, v.failed, v.x30_guarded, v.addr;
+        loop variant size / 4 - i;
+    */
     for (size_t i = 0; i < size / INSN_SIZE; i++) {
         vchk(&v, insns[i]);
         v.addr += INSN_SIZE;

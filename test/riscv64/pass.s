@@ -136,6 +136,22 @@ divuw a0, a1, a2
 .option norvc
 fence
 ---
+.option norvc
+fence iorw, iorw
+---
+.option norvc
+fence.tso
+---
+// a rounding mode the encoding is allowed to carry
+.option norvc
+fadd.d ft0, ft1, ft2, rtz
+---
+.option norvc
+fcvt.d.s ft0, ft1
+---
+.option norvc
+fcvt.s.d ft0, ft1
+---
 // the floating-point control registers, and nothing else
 .option norvc
 csrr a0, fcsr

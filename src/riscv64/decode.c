@@ -57,6 +57,12 @@ imm_j(uint32_t x)
     return sext(v, 21);
 }
 
+static bool
+reserved_rounding(uint32_t x)
+{
+    return funct3(x) == 5 || funct3(x) == 6;
+}
+
 static void
 set(struct RvInst *inst, enum RvOp op, enum RvKind kind)
 {
@@ -377,6 +383,8 @@ decode32(uint32_t x, struct RvInst *inst)
         uint32_t fmt = bits(x, 26, 25);
         if (fmt != 0 && fmt != 1)
             return;
+        if (reserved_rounding(x))
+            return;
         inst->rd = inst->rs1 = inst->rs2 = RV_NOREG;
         switch (opcode(x)) {
         case 0x43: set(inst, RV_OP_FMADD, RV_COMPUTE); return;
@@ -396,11 +404,13 @@ decode32(uint32_t x, struct RvInst *inst)
         case 0x01:
         case 0x02:
         case 0x03:
+            if (reserved_rounding(x))
+                return;
             inst->rd = inst->rs1 = inst->rs2 = RV_NOREG;
             set(inst, RV_OP_FP, RV_COMPUTE);
             return;
         case 0x0b:
-            if (rs2(x) != 0)
+            if (rs2(x) != 0 || reserved_rounding(x))
                 return;
             inst->rd = inst->rs1 = inst->rs2 = RV_NOREG;
             set(inst, RV_OP_FP, RV_COMPUTE);
@@ -418,7 +428,7 @@ decode32(uint32_t x, struct RvInst *inst)
             set(inst, RV_OP_FP, RV_COMPUTE);
             return;
         case 0x08:
-            if (rs2(x) > 1)
+            if (rs2(x) != (fmt == 0 ? 1u : 0u) || reserved_rounding(x))
                 return;
             inst->rd = inst->rs1 = inst->rs2 = RV_NOREG;
             set(inst, RV_OP_FP, RV_COMPUTE);
@@ -430,13 +440,13 @@ decode32(uint32_t x, struct RvInst *inst)
             set(inst, RV_OP_FCMP, RV_COMPUTE);
             return;
         case 0x18:
-            if (rs2(x) > 3)
+            if (rs2(x) > 3 || reserved_rounding(x))
                 return;
             inst->rs1 = inst->rs2 = RV_NOREG;
             set(inst, RV_OP_FCVT_INT, RV_COMPUTE);
             return;
         case 0x1a:
-            if (rs2(x) > 3)
+            if (rs2(x) > 3 || reserved_rounding(x))
                 return;
             inst->rd = inst->rs2 = RV_NOREG;
             set(inst, RV_OP_FP, RV_COMPUTE);
@@ -462,6 +472,10 @@ decode32(uint32_t x, struct RvInst *inst)
         return;
     }
     case 0x0f:
+        if (funct3(x) == 0 && (rd(x) != 0 || rs1(x) != 0))
+            return;
+        if (funct3(x) == 0 && bits(x, 31, 28) != 0 && x != 0x8330000f)
+            return;
         inst->rd = inst->rs1 = inst->rs2 = RV_NOREG;
         switch (funct3(x)) {
         case 0: set(inst, RV_OP_FENCE, RV_FENCE); return;

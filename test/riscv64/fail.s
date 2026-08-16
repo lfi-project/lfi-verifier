@@ -155,6 +155,18 @@ addi a0, a0, 1
 // an encoding this verifier does not name
 .word 0x0000007b
 ---
+// a fence whose reserved rd field is not zero
+.word 0x0000008f
+---
+// a fence in an ordering mode that is not zero and is not fence.tso
+.word 0x1000000f
+---
+// fadd.d carrying a reserved rounding mode
+.word 0x02205053
+---
+// a conversion whose source format is its destination format
+.word 0x42100053
+---
 // a direct branch into the second half of a macroinstruction, which would
 // reach the indirect branch without its mask
 .option norvc

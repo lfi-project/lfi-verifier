@@ -51,6 +51,7 @@ if 'x64' in arch
 endif
 if 'riscv64' in arch
   srcs += files(
+    'src/riscv64/decode.c',
     'src/riscv64/verify.c',
   )
   c_defines += '-DARCH_RISCV64'

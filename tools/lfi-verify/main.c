@@ -28,6 +28,10 @@ archname(const char *s)
     if (strcmp(s, "arm64") == 0 || strcmp(s, "aarch64") == 0)
         return "arm64";
 #endif
+#ifdef ARCH_RISCV64
+    if (strcmp(s, "riscv64") == 0 || strcmp(s, "riscv") == 0)
+        return "riscv64";
+#endif
     return NULL;
 }
 
@@ -81,8 +85,17 @@ verify(struct LFIVerifier *v, const char *filename)
 #endif
         fprintf(stderr, "error: ELF file is arm64, not %s\n", args.arch);
         goto err;
+    case EM_RISCV:
+#ifdef ARCH_RISCV64
+        if (!args.arch || strcmp(args.arch, "riscv64") == 0) {
+            v->verify = lfiv_verify_riscv64;
+            break;
+        }
+#endif
+        fprintf(stderr, "error: ELF file is riscv64, not %s\n", args.arch);
+        goto err;
     default:
-        fprintf(stderr, "ELF architecture is not x64 or arm64\n");
+        fprintf(stderr, "ELF architecture is not x64, arm64, or riscv64\n");
         goto err;
     }
 
@@ -182,7 +195,7 @@ static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [OPTION...] INPUT...\n\n"
             "  -h, --help              show help\n"
-            "  -a, --arch=ARCH         run on architecture (x64,arm64)\n"
+            "  -a, --arch=ARCH         run on architecture (x64,arm64,riscv64)\n"
             "  -n, --n=NUM             run the verifier n times (for benchmarking)\n"
             "  -s, --sandbox=TYPE      select sandbox type (full,stores)\n"
             "      --no-bdd            disable the BDD filter (x86-64)\n"

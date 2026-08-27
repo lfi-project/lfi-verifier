@@ -116,12 +116,9 @@ static bool retreg(uint8_t reg) {
     return reg == REG_RET;
 }
 
-/*@ requires \valid_read(v);
-    requires \valid_read(v->opts);
-    assigns \nothing;
-*/
+/*@ assigns \nothing; */
 static bool ctxreg(struct Verifier *v, uint8_t reg) {
-    return v->opts->ctxreg && reg == REG_CTX;
+    return reg == REG_CTX;
 }
 
 /*@ requires \valid_read(dinst);

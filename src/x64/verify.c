@@ -84,8 +84,8 @@ static bool reserved(struct Verifier *v, FdInstr *instr, int op_index) {
         return !is_read_op;
     }
 
-    // Context register (r15) cannot be modified when ctxreg is enabled
-    if (v->opts->ctxreg && reg == FD_REG_R15) {
+    // Context register (r15) cannot be modified.
+    if (reg == FD_REG_R15) {
         return !is_read_op;
     }
 
@@ -168,7 +168,7 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
                 verr(v, instr, "non-segmented memory access must use 64-bit address");
 
             // Context register (r15): only allow movq CTXREG_TP_OFFSET(%r15), %rX or movq %rX, CTXREG_TP_OFFSET(%r15)
-            if (v->opts->ctxreg && FD_OP_BASE(instr, i) == FD_REG_R15) {
+            if (FD_OP_BASE(instr, i) == FD_REG_R15) {
                 if (FD_TYPE(instr) != FDI_MOV)
                     verr(v, instr, "context register can only be used with mov");
                 if (FD_OP_SIZE(instr, i) != 8)

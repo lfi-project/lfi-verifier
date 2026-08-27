@@ -124,13 +124,10 @@ ret
 ---
 ldr xzr, [x30]
 ---
-// flags: --ctxreg
 ldr x0, [x25, #16]
 ---
-// flags: --ctxreg
 str x0, [x25, #16]
 ---
-// flags: --ctxreg
 ldr x0, [x25, #16]
 str x1, [x25, #16]
 ---

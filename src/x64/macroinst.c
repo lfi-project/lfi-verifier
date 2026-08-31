@@ -41,7 +41,8 @@ static struct MacroInst macroinst_stos(struct Verifier *v, FdInstr *first, uint8
         FD_OP_BASE(&i_lea, 1) != FD_REG_R14 ||
         FD_OP_INDEX(&i_lea, 1) != FD_REG_DI ||
         FD_OP_DISP(&i_lea, 1) != 0 ||
-        FD_OP_SCALE(&i_lea, 1) != 0){
+        FD_OP_SCALE(&i_lea, 1) != 0 ||
+        !ok_mem64(&i_lea, 1)){
         return (struct MacroInst){-1, 0};
     }
 
@@ -49,7 +50,8 @@ static struct MacroInst macroinst_stos(struct Verifier *v, FdInstr *first, uint8
         return (struct MacroInst){-1, 0};
     }
     offset += i_stos.size;
-    if (FD_TYPE(&i_stos) != FDI_STOS) {
+    if (FD_TYPE(&i_stos) != FDI_STOS ||
+        !ok_mem64(&i_stos, 0)) {
         return (struct MacroInst){-1, 0};
     }
 
@@ -86,7 +88,8 @@ static struct MacroInst macroinst_movs(struct Verifier *v, FdInstr *first, uint8
         FD_OP_BASE(&i_lea, 1) != FD_REG_R14 ||
         FD_OP_INDEX(&i_lea, 1) != FD_REG_DI ||
         FD_OP_DISP(&i_lea, 1) != 0 ||
-        FD_OP_SCALE(&i_lea, 1) != 0){
+        FD_OP_SCALE(&i_lea, 1) != 0 ||
+        !ok_mem64(&i_lea, 1)){
         return (struct MacroInst){-1, 0};
     }
 
@@ -110,7 +113,8 @@ static struct MacroInst macroinst_movs(struct Verifier *v, FdInstr *first, uint8
         FD_OP_BASE(&i_lea2, 1) != FD_REG_R14 ||
         FD_OP_INDEX(&i_lea2, 1) != FD_REG_SI ||
         FD_OP_DISP(&i_lea2, 1) != 0 ||
-        FD_OP_SCALE(&i_lea2, 1) != 0){
+        FD_OP_SCALE(&i_lea2, 1) != 0 ||
+        !ok_mem64(&i_lea2, 1)){
         return (struct MacroInst){-1, 0};
     }
 
@@ -118,7 +122,8 @@ static struct MacroInst macroinst_movs(struct Verifier *v, FdInstr *first, uint8
         return (struct MacroInst){-1, 0};
     }
     offset += i_movs.size;
-    if (FD_TYPE(&i_movs) != FDI_MOVS) {
+    if (FD_TYPE(&i_movs) != FDI_MOVS ||
+        !ok_mem64(&i_movs, 0)) {
         return (struct MacroInst){-1, 0};
     }
 
@@ -155,7 +160,8 @@ static struct MacroInst macroinst_cmps(struct Verifier *v, FdInstr *first, uint8
         FD_OP_BASE(&i_lea, 1) != FD_REG_R14 ||
         FD_OP_INDEX(&i_lea, 1) != FD_REG_DI ||
         FD_OP_DISP(&i_lea, 1) != 0 ||
-        FD_OP_SCALE(&i_lea, 1) != 0){
+        FD_OP_SCALE(&i_lea, 1) != 0 ||
+        !ok_mem64(&i_lea, 1)){
         return (struct MacroInst){-1, 0};
     }
 
@@ -179,7 +185,8 @@ static struct MacroInst macroinst_cmps(struct Verifier *v, FdInstr *first, uint8
         FD_OP_BASE(&i_lea2, 1) != FD_REG_R14 ||
         FD_OP_INDEX(&i_lea2, 1) != FD_REG_SI ||
         FD_OP_DISP(&i_lea2, 1) != 0 ||
-        FD_OP_SCALE(&i_lea2, 1) != 0){
+        FD_OP_SCALE(&i_lea2, 1) != 0 ||
+        !ok_mem64(&i_lea2, 1)){
         return (struct MacroInst){-1, 0};
     }
 
@@ -187,7 +194,8 @@ static struct MacroInst macroinst_cmps(struct Verifier *v, FdInstr *first, uint8
         return (struct MacroInst){-1, 0};
     }
     offset += i_cmps.size;
-    if (FD_TYPE(&i_cmps) != FDI_CMPS) {
+    if (FD_TYPE(&i_cmps) != FDI_CMPS ||
+        !ok_mem64(&i_cmps, 0)) {
         return (struct MacroInst){-1, 0};
     }
 
@@ -258,7 +266,8 @@ static struct MacroInst macroinst_rtcall(struct Verifier *v, FdInstr *first, uin
             FD_OP_TYPE(&i_lea, 0) != FD_OT_REG ||
             FD_OP_REG(&i_lea, 0) != FD_REG_R11 ||
             FD_OP_TYPE(&i_lea, 1) != FD_OT_MEM ||
-            FD_OP_BASE(&i_lea, 1) != FD_REG_IP)
+            FD_OP_BASE(&i_lea, 1) != FD_REG_IP ||
+            !ok_mem64(&i_lea, 1))
         return (struct MacroInst){-1, 0};
 
     FdInstr i_jmp;
@@ -270,7 +279,8 @@ static struct MacroInst macroinst_rtcall(struct Verifier *v, FdInstr *first, uin
             FD_OP_BASE(&i_jmp, 0) != FD_REG_R14 ||
             FD_OP_INDEX(&i_jmp, 0) != FD_REG_NONE ||
             FD_OP_SCALE(&i_jmp, 0) != 0 ||
-            !okrtcalldisp(FD_OP_DISP(&i_jmp, 0)))
+            !okrtcalldisp(FD_OP_DISP(&i_jmp, 0)) ||
+            !ok_mem64(&i_jmp, 0))
         return (struct MacroInst){-1, 0};
 
     // Return target can either be the next instruction or can be some
@@ -361,7 +371,8 @@ static struct MacroInst macroinst_load(struct Verifier *v, FdInstr *first, uint8
             FD_OP_TYPE(&i_load, 1) != FD_OT_MEM ||
             FD_OP_BASE(&i_load, 1) != FD_REG_R14 ||
             FD_OP_INDEX(&i_load, 1) != FD_OP_REG(&i_mov, 0) ||
-            FD_OP_SCALE(&i_load, 1) != 0)
+            FD_OP_SCALE(&i_load, 1) != 0 ||
+            !ok_mem64(&i_load, 1))
         return (struct MacroInst){-1, 0};
 
     return (struct MacroInst){i_mov.size + i_load.size, 2};
@@ -386,6 +397,11 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, FdInstr *first, uint
             FD_OP_REG(&i_mov, 0) != FD_REG_SP)
         return (struct MacroInst){-1, 0};
 
+    if (FD_TYPE(&i_mov) != FDI_LEA &&
+            FD_OP_TYPE(&i_mov, 1) != FD_OT_REG &&
+            FD_OP_TYPE(&i_mov, 1) != FD_OT_IMM)
+        return (struct MacroInst){-1, 0};
+
     FdInstr i_add;
     if (fd_decode(&buf[i_mov.size], size - i_mov.size, 64, 0, &i_add) < 0)
         return (struct MacroInst){-1, 0};
@@ -406,7 +422,8 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, FdInstr *first, uint
             FD_OP_SCALE(&i_add, 1) != 0 ||
             FD_OP_TYPE(&i_add, 0) != FD_OT_REG ||
             FD_OP_SIZE(&i_add, 0) != 8 ||
-            FD_OP_REG(&i_add, 0) != FD_REG_SP);
+            FD_OP_REG(&i_add, 0) != FD_REG_SP ||
+            !ok_mem64(&i_add, 1));
     if (fail_lea && fail_add)
         return (struct MacroInst){-1, 0};
 

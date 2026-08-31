@@ -160,3 +160,58 @@ btc %rax, (%r14)
 bts %rax, 8(%r14)
 ---
 bt %rax, (%rsp)
+---
+movl %edi, %edi
+.byte 0x67
+leaq (%r14, %rdi), %rdi
+rep stosq
+---
+// stos macro: 32-bit address size on the store itself
+movl %edi, %edi
+leaq (%r14, %rdi), %rdi
+.byte 0x67
+rep stosq
+---
+// load macro: 32-bit address size on the dereference
+movl %eax, %eax
+.byte 0x67
+movq (%r14, %rax), %rax
+---
+// movs macro: 32-bit address size on the first lea
+movl %edi, %edi
+.byte 0x67
+leaq (%r14, %rdi), %rdi
+movl %esi, %esi
+leaq (%r14, %rsi), %rsi
+rep movsq
+---
+// cmps macro: 32-bit address size on the compare itself
+movl %edi, %edi
+leaq (%r14, %rdi), %rdi
+movl %esi, %esi
+leaq (%r14, %rsi), %rsi
+.byte 0x67
+rep cmpsq
+---
+// modsp macro: 32-bit address size on the pointer-forming lea
+movl %eax, %esp
+.byte 0x67
+lea (%rsp, %r14, 1), %rsp
+---
+// rtcall macro: 32-bit address size on the memory-indirect jump
+leaq 1f(%rip), %r11
+.byte 0x67
+jmpq *(%r14)
+1:
+---
+// modsp macro: an unsandboxed memory source into %esp is not permitted
+addl (%rax), %esp
+addq %r14, %rsp
+---
+// modsp macro: an unsandboxed memory source (mov) into %esp is not permitted
+movl (%rax), %esp
+addq %r14, %rsp
+---
+// modsp macro: subtracting from an unsandboxed memory source is not permitted
+subl (%rax), %esp
+addq %r14, %rsp

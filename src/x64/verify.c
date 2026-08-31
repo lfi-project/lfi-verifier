@@ -55,6 +55,22 @@ static int nmod(FdInstr *instr) {
         return 0;
     case FDI_XCHG:
     case FDI_MULX:
+    case FDI_CMPBEXADD:
+    case FDI_CMPBXADD:
+    case FDI_CMPLEXADD:
+    case FDI_CMPLXADD:
+    case FDI_CMPNBEXADD:
+    case FDI_CMPNBXADD:
+    case FDI_CMPNLEXADD:
+    case FDI_CMPNLXADD:
+    case FDI_CMPNOXADD:
+    case FDI_CMPNPXADD:
+    case FDI_CMPNSXADD:
+    case FDI_CMPNZXADD:
+    case FDI_CMPOXADD:
+    case FDI_CMPPXADD:
+    case FDI_CMPSXADD:
+    case FDI_CMPZXADD:
     case FDI_XADD:
         return 2;
     default:
@@ -144,6 +160,10 @@ static bool okmnem(struct Verifier *v, FdInstr *instr) {
     }
 }
 
+static bool ok_mem64(FdInstr *i, int idx) {
+    return FD_ADDRSIZE(i) == 8 && FD_SEGMENT(i) == FD_REG_NONE;
+}
+
 static void chkmem(struct Verifier *v, FdInstr *instr) {
     if (FD_TYPE(instr) == FDI_LEA || FD_TYPE(instr) == FDI_NOP)
         return;
@@ -164,7 +184,7 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
                 continue;
             }
 
-            if (FD_ADDRSIZE(instr) != 8)
+            if (!ok_mem64(instr, i))
                 verr(v, instr, "non-segmented memory access must use 64-bit address");
 
             // Context register (r15): only allow movq CTXREG_TP_OFFSET(%r15), %rX or movq %rX, CTXREG_TP_OFFSET(%r15)

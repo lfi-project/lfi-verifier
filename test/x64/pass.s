@@ -125,3 +125,13 @@ leaq (%r14, %rdi), %rdi
 movl %esi, %esi
 leaq (%r14, %rsi), %rsi
 rep cmpsq
+---
+// bit-test with an immediate offset is bounded to the addressed unit
+bt $5, (%r14)
+---
+bts $100, (%r14)
+---
+// bit-test with a register bit base (not memory) is safe: offset is mod size
+bt %rax, %rbx
+---
+bts %rax, %rbx

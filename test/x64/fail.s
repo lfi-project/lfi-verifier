@@ -148,3 +148,15 @@ stosq
 movsq
 ---
 cmpsq
+---
+bt %rax, (%r14)
+---
+bts %rax, (%r14)
+---
+btr %rax, (%r14)
+---
+btc %rax, (%r14)
+---
+bts %rax, 8(%r14)
+---
+bt %rax, (%rsp)

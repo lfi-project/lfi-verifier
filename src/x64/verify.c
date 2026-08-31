@@ -190,6 +190,22 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
     }
 }
 
+static void chkbits(struct Verifier *v, FdInstr *instr) {
+    switch (FD_TYPE(instr)) {
+    case FDI_BT:
+    case FDI_BTC:
+    case FDI_BTR:
+    case FDI_BTS:
+        break;
+    default:
+        return;
+    }
+
+    // The bit base is operand 0 and the bit offset is operand 1.
+    if (FD_OP_TYPE(instr, 0) == FD_OT_MEM && FD_OP_TYPE(instr, 1) == FD_OT_REG)
+        verr(v, instr, "bit-test on memory with register offset is not permitted");
+}
+
 static void chkmod(struct Verifier *v, FdInstr *instr) {
     if (FD_TYPE(instr) == FDI_NOP)
         return;
@@ -235,6 +251,7 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
 
             chkbranch(v, &instr);
             chkmem(v, &instr);
+            chkbits(v, &instr);
             chkmod(v, &instr);
         }
 

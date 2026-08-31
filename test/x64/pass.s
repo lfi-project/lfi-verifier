@@ -135,3 +135,6 @@ bts $100, (%r14)
 bt %rax, %rbx
 ---
 bts %rax, %rbx
+---
+// flags: --no-bdd
+cmpoxadd %rbx, %rcx, (%r14)

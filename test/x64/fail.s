@@ -215,3 +215,12 @@ addq %r14, %rsp
 // modsp macro: subtracting from an unsandboxed memory source is not permitted
 subl (%rax), %esp
 addq %r14, %rsp
+---
+// flags: --no-bdd
+cmpzxadd %rbx, %r15, (%r14)
+---
+// flags: --no-bdd
+cmpnzxadd %rbx, %r14, (%r14)
+---
+// flags: --no-bdd
+cmpoxadd %rbx, %rsp, (%r14)

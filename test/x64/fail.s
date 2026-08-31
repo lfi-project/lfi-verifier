@@ -204,6 +204,16 @@ leaq 1f(%rip), %r11
 jmpq *(%r14)
 1:
 ---
+// rtcall macro: 32-bit lea truncates the return address
+leal 1f(%rip), %r11d
+jmpq *(%r14)
+1:
+---
+// rtcall macro: 16-bit lea truncates the return address
+leaw 1f(%rip), %r11w
+jmpq *(%r14)
+1:
+---
 // modsp macro: an unsandboxed memory source into %esp is not permitted
 addl (%rax), %esp
 addq %r14, %rsp

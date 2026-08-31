@@ -263,8 +263,7 @@ static struct MacroInst macroinst_rtcall(struct Verifier *v, FdInstr *first, uin
     FdInstr i_lea = *first;
 
     if (FD_TYPE(&i_lea) != FDI_LEA ||
-            FD_OP_TYPE(&i_lea, 0) != FD_OT_REG ||
-            FD_OP_REG(&i_lea, 0) != FD_REG_R11 ||
+            !assert_reg(&i_lea, 0, FD_REG_R11, 8) ||
             FD_OP_TYPE(&i_lea, 1) != FD_OT_MEM ||
             FD_OP_BASE(&i_lea, 1) != FD_REG_IP ||
             !ok_mem64(&i_lea, 1))

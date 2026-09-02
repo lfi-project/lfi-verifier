@@ -263,7 +263,9 @@ static void chkbranch(struct Verifier *v, struct Da64Inst *dinst) {
         // Check x30 is guarded for all other branches (direct branches, conditional branches)
         if (DA64_GROUP(dinst->mnem) == DA64G_BRANCH ||
             DA64_GROUP(dinst->mnem) == DA64G_BCOND ||
-            DA64_GROUP(dinst->mnem) == DA64G_BRANCHREG) {
+            DA64_GROUP(dinst->mnem) == DA64G_BRANCHREG ||
+            DA64_GROUP(dinst->mnem) == DA64G_CBZ ||
+            DA64_GROUP(dinst->mnem) == DA64G_TBZ) {
             if (!v->x30_guarded) {
                 verr(v, dinst, "x30 must be guarded before control flow");
             }

@@ -236,11 +236,29 @@ static void chkmod(struct Verifier *v, FdInstr *instr) {
     }
 }
 
-static void chkbranch(struct Verifier *v, FdInstr *instr) {
+// Whether a legacy 0x66 operand-size prefix is present.
+static bool has_opsize_prefix(uint8_t *buf, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        switch (buf[i]) {
+        case 0x66: // operand-size override
+            return true;
+        case 0x67: case 0xf0: case 0xf2: case 0xf3: // other legacy prefixes
+        case 0x26: case 0x2e: case 0x36: case 0x3e: case 0x64: case 0x65:
+            continue;
+        default:
+            return false;
+        }
+    }
+    return false;
+}
+
+static void chkbranch(struct Verifier *v, FdInstr *instr, uint8_t *buf, size_t size) {
     int64_t target;
     bool indirect, cond;
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
     if (branch && !indirect) {
+        if (has_opsize_prefix(buf, size))
+            verr(v, instr, "operand-size prefix on direct branch is not permitted");
         if (target % v->bundlesize != 0)
             verr(v, instr, "jump target is not bundle-aligned");
     } else if (branch && indirect) {
@@ -269,7 +287,7 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
             if (!okmnem(v, &instr))
                 verr(v, &instr, "illegal instruction");
 
-            chkbranch(v, &instr);
+            chkbranch(v, &instr, &buf[count], size - count);
             chkmem(v, &instr);
             chkbits(v, &instr);
             chkmod(v, &instr);

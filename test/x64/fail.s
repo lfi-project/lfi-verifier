@@ -234,3 +234,6 @@ cmpnzxadd %rbx, %r14, (%r14)
 ---
 // flags: --no-bdd
 cmpoxadd %rbx, %rsp, (%r14)
+---
+// flags: --no-bdd
+.byte 0x66, 0x41, 0x0f, 0x8c, 0x18, 0x00, 0x0f, 0x05

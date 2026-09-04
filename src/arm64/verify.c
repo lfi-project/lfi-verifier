@@ -332,12 +332,26 @@ static bool okrtcallimm(int16_t simm16) {
     return false;
 }
 
+// Whether this memory access is exempt from address sandboxing checks. Loads
+// are unchecked in stores-only mode, and both loads and stores are unchecked
+// in jumps-only mode.
+static bool unchecked(struct Verifier *v, bool load) {
+    switch (v->opts->box) {
+    case LFI_BOX_STORES:
+        return load;
+    case LFI_BOX_JUMPS:
+        return true;
+    default:
+        return false;
+    }
+}
+
 static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
-    bool storesonly = v->opts->box == LFI_BOX_STORES;
+    bool nochk = unchecked(v, load);
     switch (op->type) {
     case DA_OP_MEMUOFF:
     case DA_OP_MEMSOFF:
-        if (load && storesonly)
+        if (nochk)
             return true;
         // runtime call
         if (rtsysreg(v, op->reg) && okrtcallimm(op->simm16))
@@ -348,17 +362,17 @@ static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
         return ldstreg(v, op->reg, true);
     case DA_OP_MEMSOFFPRE:
     case DA_OP_MEMSOFFPOST:
-        if (load && storesonly)
+        if (nochk)
             return !fixedreg(v, op->reg);
         return ldstreg(v, op->reg, true);
     case DA_OP_MEMREG:
-        if (load && storesonly)
+        if (nochk)
             return true;
         return basereg(op->reg) && op->memreg.ext == DA_EXT_UXTW && op->memreg.sc == 0;
     case DA_OP_MEMREGPOST:
         return false;
     case DA_OP_MEMINC:
-        if (load && storesonly)
+        if (nochk)
             return !fixedreg(v, op->reg);
         return false;
     default:

@@ -118,6 +118,29 @@ jmp *%r14
 // flags: --sandbox=stores
 movq %rax, (%rdi)
 ---
+// flags: --sandbox=jumps
+// indirect branches are still checked
+jmp *%rax
+---
+// flags: --sandbox=jumps
+// indirect branches are still checked
+jmp *(%rdi)
+---
+// flags: --sandbox=jumps
+// direct branch target must be bundle-aligned
+jmp foo
+nop
+foo:
+nop
+---
+// flags: --sandbox=jumps
+// reserved registers still cannot be modified
+movq (%rdi), %r14
+---
+// flags: --sandbox=jumps
+// reserved registers still cannot be modified
+movq (%rdi), %rsp
+---
 movq (%r14, %rax), %rdi
 ---
 movq (%rsp, %r14), %rdi

@@ -184,7 +184,7 @@ static void usage(const char *prog)
             "  -h, --help              show help\n"
             "  -a, --arch=ARCH         run on architecture (x64,arm64)\n"
             "  -n, --n=NUM             run the verifier n times (for benchmarking)\n"
-            "  -s, --sandbox=TYPE      select sandbox type (full,stores)\n"
+            "  -s, --sandbox=TYPE      select sandbox type (full,stores,jumps)\n"
             "      --no-bdd            disable the BDD filter (x86-64)\n"
             , prog);
     exit(1);
@@ -226,6 +226,8 @@ main(int argc, char **argv)
                 opts.box = LFI_BOX_FULL;
             else if (strcmp(optarg, "stores") == 0)
                 opts.box = LFI_BOX_STORES;
+            else if (strcmp(optarg, "jumps") == 0)
+                opts.box = LFI_BOX_JUMPS;
             else {
                 fprintf(stderr, "unsupported sandbox type: %s\n", optarg);
                 return 1;

@@ -89,6 +89,31 @@ ldr x0, [x27], #16
 // flags: --sandbox=stores
 str x0, [x1]
 ---
+// flags: --sandbox=jumps
+// writeback to fixed register
+str x0, [x27], #16
+---
+// flags: --sandbox=jumps
+// writeback to fixed register
+ldr x0, [x25], #16
+---
+// flags: --sandbox=jumps
+// register post-index writeback modifies base register by arbitrary amount
+st1 {v0.8b}, [x28], x1
+---
+// flags: --sandbox=jumps
+// indirect branches are still checked
+br x1
+---
+// flags: --sandbox=jumps
+// x30 must still be guarded before return
+mov x30, x1
+ret
+---
+// flags: --sandbox=jumps
+// reserved registers still cannot be modified
+ldr x27, [x1]
+---
 ldur x30, [x27, #32]
 ---
 ldr x30, [x27, #6]

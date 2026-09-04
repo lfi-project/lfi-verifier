@@ -85,6 +85,24 @@ movq (%r14, %r11), %rax
 // flags: --sandbox=stores
 movq (%rdi), %rax
 ---
+// flags: --sandbox=jumps
+movq (%rdi), %rax
+---
+// flags: --sandbox=jumps
+movq %rax, (%rdi)
+---
+// flags: --sandbox=jumps
+movq %rax, (%rdi, %rsi, 8)
+---
+// flags: --sandbox=jumps
+movq %rax, (%edi)
+---
+// flags: --sandbox=jumps
+bts %rax, (%rdi)
+---
+// flags: --sandbox=jumps
+addq $1, (%r15)
+---
 leaq 1f(%rip), %r11
 jmpq *-8(%r14)
 1:

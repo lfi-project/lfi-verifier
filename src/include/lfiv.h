@@ -7,10 +7,11 @@
 enum LFIBoxType {
     LFI_BOX_FULL,
     LFI_BOX_STORES,
+    LFI_BOX_JUMPS,
 };
 
 struct LFIVOptions {
-    // Sandbox type (full, stores-only).
+    // Sandbox type (full, stores-only, jumps-only).
     enum LFIBoxType box;
 
     // Disable BDD filter (x86-64).

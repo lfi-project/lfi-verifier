@@ -20,10 +20,11 @@ which provides the following API:
 enum LFIBoxType {
     LFI_BOX_FULL,
     LFI_BOX_STORES,
+    LFI_BOX_JUMPS,
 };
 
 struct LFIVOptions {
-    // Sandbox type (full, stores-only).
+    // Sandbox type (full, stores-only, jumps-only).
     enum LFIBoxType box;
 
     // Callback to print a null-terminated error message if verification fails.

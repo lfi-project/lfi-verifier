@@ -70,6 +70,28 @@ ldr x0, [x1]
 // flags: --sandbox=stores
 ldr x0, [x1], #16
 ---
+// flags: --sandbox=jumps
+ldr x0, [x1]
+---
+// flags: --sandbox=jumps
+str x0, [x1]
+---
+// flags: --sandbox=jumps
+ldr x0, [x1], #16
+---
+// flags: --sandbox=jumps
+str x0, [x1], #16
+---
+// flags: --sandbox=jumps
+stp x0, x1, [x2, #-16]!
+---
+// flags: --sandbox=jumps
+str x0, [x1, x2, lsl #3]
+---
+// flags: --sandbox=jumps
+add x30, x27, w30, uxtw
+ret
+---
 .arch_extension pauth
 autiasp
 ---

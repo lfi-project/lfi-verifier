@@ -172,6 +172,8 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
 
     for (size_t i = 0; i < 4; i++) {
         if (FD_OP_TYPE(instr, i) == FD_OT_MEM) {
+            if (v->opts->box == LFI_BOX_JUMPS)
+                continue;
             if (v->opts->box == LFI_BOX_STORES && i >= n)
                 continue;
 
@@ -211,6 +213,10 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
 }
 
 static void chkbits(struct Verifier *v, FdInstr *instr) {
+    // Memory accesses are unchecked in jumps-only mode.
+    if (v->opts->box == LFI_BOX_JUMPS)
+        return;
+
     switch (FD_TYPE(instr)) {
     case FDI_BT:
     case FDI_BTC:

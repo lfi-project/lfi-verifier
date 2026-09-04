@@ -11,10 +11,79 @@ mov %rdi, %rdi
 mov %rdi, %rdi
 mov %rdi, %rdi
 ---
-jmp foo
-nop
+// direct branch into the middle of an instruction
+jmp foo+1
 foo:
-nop
+movl $1, %eax
+---
+// direct branch into the middle of an instruction (backward)
+foo:
+movl $1, %eax
+jmp foo+2
+---
+// direct branch into the interior of a jmp macroinstruction
+jmp 1f
+andl $0xffffffe0, %eax
+1:
+addq %r14, %rax
+jmp *%rax
+---
+// direct branch into the interior of a jmp macroinstruction (backward)
+andl $0xffffffe0, %eax
+1:
+addq %r14, %rax
+jmp *%rax
+jmp 1b
+---
+// conditional direct branch into the interior of a jmp macroinstruction
+andl $0xffffffe0, %eax
+addq %r14, %rax
+1:
+jmp *%rax
+jz 1b
+---
+// direct branch into the nop padding of a call macroinstruction
+jmp 1f
+.nops 5
+andl $0xffffffe0, %eax
+addq %r14, %rax
+1:
+.nops 17
+callq *%rax
+---
+// direct call into the interior of a call macroinstruction
+call 1f
+.nops 5
+andl $0xffffffe0, %eax
+addq %r14, %rax
+.nops 14
+1:
+callq *%rax
+---
+// direct branch into the interior of an rtcall macroinstruction
+leaq 1f(%rip), %r11
+2:
+jmpq *-8(%r14)
+1:
+jmp 2b
+---
+// direct branch into the interior of a load macroinstruction
+movl %r11d, %r11d
+1:
+movq (%r14, %r11), %rax
+jmp 1b
+---
+// direct branch into the interior of a stack pointer macroinstruction
+movl %eax, %esp
+1:
+addq %r14, %rsp
+jmp 1b
+---
+// non-bundle-aligned direct branch outside the code region
+jmp _start+1000001
+---
+// non-bundle-aligned direct branch before the code region
+jmp _start-7
 ---
 jmpq *%rax
 ---
@@ -127,11 +196,10 @@ jmp *%rax
 jmp *(%rdi)
 ---
 // flags: --sandbox=jumps
-// direct branch target must be bundle-aligned
-jmp foo
-nop
+// direct branch targets are still checked
+jmp foo+1
 foo:
-nop
+movl $1, %eax
 ---
 // flags: --sandbox=jumps
 // reserved registers still cannot be modified
@@ -260,3 +328,17 @@ cmpoxadd %rbx, %rsp, (%r14)
 ---
 // flags: --no-bdd
 .byte 0x66, 0x41, 0x0f, 0x8c, 0x18, 0x00, 0x0f, 0x05
+---
+// flags: --align-branches
+// a non-bundle-aligned target is rejected even though it is an instruction boundary
+jmp foo
+nop
+foo:
+nop
+---
+// flags: --align-branches
+// backward non-bundle-aligned target is rejected
+nop
+foo:
+nop
+jmp foo

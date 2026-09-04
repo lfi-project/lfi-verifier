@@ -19,7 +19,27 @@ struct Verifier {
     uintptr_t addr;
     struct LFIVOptions *opts;
     size_t bundlesize;
+
+    // Start address and size of the code being verified.
+    uintptr_t base;
+    size_t size;
+    // Bitmap of macroinstruction boundaries.
+    uint64_t *bounds;
+    // Bitmap of non-bundle-aligned direct branch targets.
+    uint64_t *targets;
 };
+
+enum {
+    BITMAP_WORD = 64,
+};
+
+static size_t bitmap_words(size_t size) {
+    return (size + BITMAP_WORD - 1) / BITMAP_WORD;
+}
+
+static void bitmap_set(uint64_t *bm, size_t bit) {
+    bm[bit / BITMAP_WORD] |= (uint64_t) 1 << (bit % BITMAP_WORD);
+}
 
 enum {
     ERRMAX = 128,
@@ -265,8 +285,17 @@ static void chkbranch(struct Verifier *v, FdInstr *instr, uint8_t *buf, size_t s
     if (branch && !indirect) {
         if (has_opsize_prefix(buf, size))
             verr(v, instr, "operand-size prefix on direct branch is not permitted");
-        if (target % v->bundlesize != 0)
-            verr(v, instr, "jump target is not bundle-aligned");
+        if (target % v->bundlesize != 0) {
+            if (v->opts->align_branches) {
+                verr(v, instr, "jump target is not bundle-aligned");
+            } else if (target < (int64_t) v->base || target >= (int64_t) (v->base + v->size)) {
+                verr(v, instr, "jump target is not bundle-aligned and is outside the code region");
+            } else {
+                // A non-bundle-aligned target is permitted if it is a
+                // macroinstruction boundary in the linear decode.
+                bitmap_set(v->targets, target - v->base);
+            }
+        }
     } else if (branch && indirect) {
         verr(v, instr, "invalid indirect branch");
     }
@@ -285,6 +314,9 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
             verrmin(v, "%lx: unknown instruction", v->addr);
             return ninstr;
         }
+        // Every macroinstruction start in the linear decode is a valid direct
+        // branch target.
+        bitmap_set(v->bounds, v->addr - v->base);
         struct MacroInst mi = macroinst(v, &instr, &buf[count], size - count);
         if (mi.size < 0) {
             mi.size = ret;
@@ -312,6 +344,24 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
     return ninstr;
 }
 
+// Check that every non-bundle-aligned direct branch target is a
+// macroinstruction boundary.
+static void chktargets(struct Verifier *v) {
+    size_t nwords = bitmap_words(v->size);
+    for (size_t w = 0; w < nwords; w++) {
+        uint64_t bad = v->targets[w] & ~v->bounds[w];
+        while (bad != 0) {
+            int bit = __builtin_ctzll(bad);
+            bad &= bad - 1;
+            verrmin(v, "%lx: branch target is not a macroinstruction boundary",
+                    v->base + w * BITMAP_WORD + bit);
+            // Exit early if there is no error reporter.
+            if (v->opts->err == NULL)
+                return;
+        }
+    }
+}
+
 bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions *opts) {
     uint8_t *insns = (uint8_t *) code;
 
@@ -319,6 +369,8 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
         .addr = addr,
         .opts = opts,
         .bundlesize = 32,
+        .base = addr,
+        .size = size,
     };
 
     size_t bdd_count = 0;
@@ -347,6 +399,14 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
 
     v.addr = addr;
 
+    size_t nwords = bitmap_words(size);
+    v.bounds = calloc(nwords, sizeof(uint64_t));
+    v.targets = calloc(nwords, sizeof(uint64_t));
+    if (nwords != 0 && (!v.bounds || !v.targets)) {
+        verrmin(&v, "out of memory");
+        goto done;
+    }
+
     size_t count = 0;
     size_t ninstr = 0;
     while (count < size) {
@@ -355,8 +415,10 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
 
         // Exit early if there is no error reporter.
         if ((v.failed && v.opts->err == NULL) || v.abort)
-            return false;
+            goto done;
     }
+
+    chktargets(&v);
 
     if (!v.opts->no_bdd) {
         if (!v.failed) {
@@ -364,5 +426,8 @@ bool lfiv_verify_x64(char *code, size_t size, uintptr_t addr, struct LFIVOptions
         }
     }
 
+done:
+    free(v.bounds);
+    free(v.targets);
     return !v.failed;
 }

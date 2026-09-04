@@ -19,6 +19,70 @@ add $8, %rdi
 .p2align 5
 foo:
 ---
+// direct branch to a non-bundle-aligned instruction boundary
+jmp foo
+nop
+foo:
+nop
+---
+// backward direct branch to a non-bundle-aligned instruction boundary
+nop
+foo:
+nop
+jmp foo
+---
+// conditional direct branch to a non-bundle-aligned instruction boundary
+nop
+foo:
+add $8, %rdi
+jnz foo
+---
+// direct call to a non-bundle-aligned instruction boundary
+call foo
+nop
+foo:
+nop
+---
+// direct branch to the start of a macroinstruction
+jmp 1f
+nop
+1:
+andl $0xffffffe0, %eax
+addq %r14, %rax
+jmp *%rax
+---
+// direct branch to the start of a call macroinstruction
+jmp 1f
+.nops 5
+1:
+andl $0xffffffe0, %eax
+addq %r14, %rax
+.nops 17
+callq *%rax
+---
+// direct branch to the instruction after an rtcall macroinstruction
+jmp 1f
+leaq 1f(%rip), %r11
+jmpq *-8(%r14)
+1:
+nop
+---
+// direct branch to the start of a load macroinstruction
+jmp 1f
+nop
+1:
+movl %r11d, %r11d
+movq (%r14, %r11), %rax
+---
+// direct branch to a non-bundle-aligned instruction in a different bundle
+jmp foo
+.nops 40
+foo:
+nop
+---
+// bundle-aligned direct branch outside the code region is still permitted
+jmp _start+1000000
+---
 mov %gs:(%eax), %rax
 ---
 mov %gs:12(%eax, %edi, 4), %rax
@@ -156,3 +220,10 @@ bts %rax, %rbx
 ---
 // flags: --no-bdd
 cmpoxadd %rbx, %rcx, (%r14)
+---
+// flags: --align-branches
+// bundle-aligned direct branch is still permitted in strict mode
+jmp foo
+.p2align 5
+foo:
+nop

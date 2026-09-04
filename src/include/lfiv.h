@@ -17,6 +17,9 @@ struct LFIVOptions {
     // Disable BDD filter (x86-64).
     bool no_bdd;
 
+    // Require all direct branch targets to be bundle-aligned (x86-64).
+    bool align_branches;
+
     // Context register is enabled regardless of this option (will be removed
     // in the future).
     bool ctxreg;

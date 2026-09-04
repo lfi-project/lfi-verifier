@@ -186,6 +186,7 @@ static void usage(const char *prog)
             "  -n, --n=NUM             run the verifier n times (for benchmarking)\n"
             "  -s, --sandbox=TYPE      select sandbox type (full,stores,jumps)\n"
             "      --no-bdd            disable the BDD filter (x86-64)\n"
+            "      --align-branches    require all direct branch targets to be bundle-aligned (x86-64)\n"
             , prog);
     exit(1);
 }
@@ -201,6 +202,7 @@ main(int argc, char **argv)
         {"n", required_argument, 0, 'n'},
         {"sandbox", required_argument, 0, 's'},
         {"no-bdd", no_argument, 0, 0},
+        {"align-branches", no_argument, 0, 0},
         {0, 0, 0, 0}
     };
 
@@ -236,6 +238,8 @@ main(int argc, char **argv)
         case 0:
             if (strcmp(long_options[long_index].name, "no-bdd") == 0) {
                 opts.no_bdd = true;
+            } else if (strcmp(long_options[long_index].name, "align-branches") == 0) {
+                opts.align_branches = true;
             }
             break;
         }

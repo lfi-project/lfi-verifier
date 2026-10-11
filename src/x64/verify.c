@@ -209,16 +209,16 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
             if (!ok_mem64(instr, i))
                 verr(v, instr, "non-segmented memory access must use 64-bit address");
 
-            // Context register (r15): only allow movq CTXREG_TP_OFFSET(%r15), %rX or movq %rX, CTXREG_TP_OFFSET(%r15)
+            // Context register (r15) accesses.
             if (FD_OP_BASE(instr, i) == FD_REG_R15) {
-                if (FD_TYPE(instr) != FDI_MOV)
-                    verr(v, instr, "context register can only be used with mov");
-                if (FD_OP_SIZE(instr, i) != 8)
-                    verr(v, instr, "context register can only be used with 64-bit mov");
                 if (FD_OP_DISP(instr, i) != CTXREG_TP_OFFSET)
                     verr(v, instr, "context register memory access has wrong displacement");
                 if (FD_OP_INDEX(instr, i) != FD_REG_NONE)
                     verr(v, instr, "context register memory access cannot have index register");
+                if (FD_OP_SIZE(instr, i) == 0 || FD_OP_SIZE(instr, i) > 8)
+                    verr(v, instr, "context register memory access is too wide");
+                if (FD_TYPE(instr) != FDI_MOV && i < n)
+                    verr(v, instr, "context register can only be written with mov");
                 continue;
             }
 

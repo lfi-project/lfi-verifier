@@ -216,8 +216,14 @@ movq (%rsp, %r14), %rdi
 // modification of r15 is not allowed
 mov %rax, %r15
 ---
-// non-64-bit mov from r15 is not allowed
-movl (%r15), %eax
+// an access wider than the thread pointer slot is not allowed
+movdqu 16(%r15), %xmm0
+---
+movups %xmm0, 16(%r15)
+---
+frstor 16(%r15)
+---
+fldt 16(%r15)
 ---
 // r15 with wrong displacement is not allowed
 movq 8(%r15), %rax
@@ -225,8 +231,10 @@ movq 8(%r15), %rax
 // r15 with zero displacement is not allowed
 movq (%r15), %rax
 ---
-// only mov is allowed with r15, not add
-addq 16(%r15), %rax
+// only mov may write the thread pointer slot
+xorq %rax, 16(%r15)
+---
+addq %rax, 16(%r15)
 ---
 // mulx: two destinations
 mulx %eax, %esp, %ebx

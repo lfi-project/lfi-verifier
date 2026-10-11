@@ -192,6 +192,18 @@ movq %rax, 16(%r15)
 movq 16(%r15), %rdi
 movq %rsi, 16(%r15)
 ---
+// the thread pointer slot may be read by any instruction, not just mov
+cmpq 16(%r15), %rax
+---
+xorq 16(%r15), %rax
+---
+addq 16(%r15), %rax
+---
+// a narrower read stays within the slot
+movl 16(%r15), %eax
+---
+movq 16(%r15), %xmm0
+---
 movl %edi, %edi
 leaq (%r14, %rdi), %rdi
 rep stosq

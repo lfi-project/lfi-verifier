@@ -1,6 +1,6 @@
 option('arch',
   type: 'string',
-  value: 'arm64,x64',
+  value: 'arm64,x64,riscv64',
   description: 'list of architectures for which to enable verification')
 
 option('code_bdd',

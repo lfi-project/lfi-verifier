@@ -120,6 +120,10 @@ mov %rax, %rsp
 ---
 mov $0, %rsp
 ---
+mov %al, %spl
+---
+mov %al, %r14b
+---
 add $12, %rsp
 ---
 xchg %r14, %rax

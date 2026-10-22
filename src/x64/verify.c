@@ -108,9 +108,11 @@ static bool reserved(struct Verifier *v, FdInstr *instr, int op_index) {
     // Allow all FPU registers.
     if (FD_OP_REG_TYPE(instr, op_index) == FD_RT_FPU)
         return false;
+    // Allow all high-byte registers (ah, ch, dh, bh).
+    if (FD_OP_REG_TYPE(instr, op_index) == FD_RT_GPH)
+        return false;
     // Disallow anything else that is not GPR.
-    if (FD_OP_REG_TYPE(instr, op_index) != FD_RT_GPL &&
-        FD_OP_REG_TYPE(instr, op_index) != FD_RT_GPH)
+    if (FD_OP_REG_TYPE(instr, op_index) != FD_RT_GPL)
         return true;
 
     FdReg reg = FD_OP_REG(instr, op_index);

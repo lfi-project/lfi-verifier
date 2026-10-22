@@ -239,3 +239,9 @@ jmp foo
 .p2align 5
 foo:
 nop
+---
+mov %al, %ah
+---
+movb 9(%rsp), %ah
+---
+mov %cl, %bh

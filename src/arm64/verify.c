@@ -91,8 +91,9 @@ static bool cfreg(struct Verifier *v, uint8_t reg) {
     return reg == REG_ADDR || reg == REG_RET;
 }
 
+// Register that base-relative runtime calls load their entrypoint through.
 static bool rtsysreg(struct Verifier *v, uint8_t reg) {
-    return reg == REG_BASE;
+    return reg == REG_BASE && !v->opts->no_base_rtcalls;
 }
 
 static bool basereg(uint8_t reg) {
@@ -317,6 +318,31 @@ static bool okmnem(struct Verifier *v, struct Da64Inst *dinst) {
     return false;
 }
 
+// Offsets of the runtime call entrypoints below the context register, which a
+// runtime call through the context register may load. The
+// context register itself points at writable data.
+static bool okctxrtcallimm(int16_t simm16) {
+    switch (simm16) {
+    case -8:
+    case -16:
+    case -24:
+    case -32:
+        return true;
+    }
+    return false;
+}
+
+// Whether dinst is 'ldur x30, [x25, #N]' loading a runtime call entrypoint
+// through the context register.
+static bool is_ctxreg_rtcall_load(struct Verifier *v, struct Da64Inst *dinst) {
+    return dinst->mnem == DA64I_LDURX &&
+           dinst->ops[0].type == DA_OP_REGGP &&
+           dinst->ops[0].reg == REG_RET &&
+           dinst->ops[1].type == DA_OP_MEMSOFF &&
+           dinst->ops[1].reg == REG_CTX &&
+           okctxrtcallimm(dinst->ops[1].simm16);
+}
+
 static bool okrtcallimm(int16_t simm16) {
     switch (simm16) {
     case 0:
@@ -356,9 +382,13 @@ static bool okmemop(struct Verifier *v, struct Da64Op *op, bool load) {
         // runtime call
         if (rtsysreg(v, op->reg) && okrtcallimm(op->simm16))
             return true;
-        // context register: only allow [x25, #CTXREG_TP_OFFSET]
-        if (ctxreg(v, op->reg))
-            return op->uimm16 == CTXREG_TP_OFFSET;
+        // context register: only allow [x25, #CTXREG_TP_OFFSET], and the
+        // runtime call entrypoints below it (checked further by chkmemops)
+        if (ctxreg(v, op->reg)) {
+            if (op->type == DA_OP_MEMSOFF && okctxrtcallimm(op->simm16))
+                return true;
+            return op->type == DA_OP_MEMUOFF && op->uimm16 == CTXREG_TP_OFFSET;
+        }
         return ldstreg(v, op->reg, true);
     case DA_OP_MEMSOFFPRE:
     case DA_OP_MEMSOFFPOST:
@@ -396,9 +426,11 @@ static void chkmemops(struct Verifier *v, struct Da64Inst *dinst) {
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
         if (!okmemop(v, &dinst->ops[i], load))
             verr(v, dinst, "illegal memory operand");
-        // Check that x25 is only used with valid 64-bit load/store
+        // Check that x25 is only used with valid 64-bit load/store, or to
+        // load a runtime call entrypoint into x30
         if (dinst->ops[i].type == DA_OP_MEMUOFF || dinst->ops[i].type == DA_OP_MEMSOFF) {
-            if (ctxreg(v, dinst->ops[i].reg) && !ok_ctxreg_ldst(dinst))
+            if (ctxreg(v, dinst->ops[i].reg) && !ok_ctxreg_ldst(dinst) &&
+                    !is_ctxreg_rtcall_load(v, dinst))
                 verr(v, dinst, "context register can only be used with 64-bit ldr/str");
         }
     }
@@ -437,6 +469,12 @@ static bool okmod(struct Verifier *v, struct Da64Inst *dinst, struct Da64Op *op)
             v->x30_guarded = true;
             return true;
         }
+        // ldur x30, [x25, #n] - runtime call entrypoint below the context
+        // register guards x30 (no other load from x25 does)
+        if (is_ctxreg_rtcall_load(v, dinst)) {
+            v->x30_guarded = true;
+            return true;
+        }
         // Any other modification to x30 unguards it
         v->x30_guarded = false;
         return true;
@@ -464,6 +502,13 @@ static void chkwriteback(struct Verifier *v, struct Da64Inst *dinst) {
         case DA_OP_MEMREGPOST:
             memreg = op->reg;
             prepost = true;
+            // fallthrough
+        case DA_OP_MEMINC:
+            // Writeback to x30 (only possible in stores-only and jumps-only
+            // modes) moves it away from the address that guarded it, which
+            // may be a runtime call entrypoint outside the sandbox.
+            if (retreg(op->reg))
+                v->x30_guarded = false;
             break;
         }
     }

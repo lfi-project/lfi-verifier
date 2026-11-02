@@ -256,9 +256,23 @@ static bool okrtcalldisp(int64_t disp) {
     return false;
 }
 
+// Runtime calls through the context register may only use the runtime call
+// entrypoints directly below it: the context register itself points at
+// writable data.
+static bool okctxrtcalldisp(int64_t disp) {
+    switch (disp) {
+    case -8:
+    case -16:
+    case -24:
+    case -32:
+        return true;
+    }
+    return false;
+}
+
 static struct MacroInst macroinst_rtcall(struct Verifier *v, FdInstr *first, uint8_t *buf, size_t size) {
     // leaq 1f(%rip), %r11
-    // jmpq *N(%r14)
+    // jmpq *N(%r14) or jmpq *N(%r15)
     // 1:
     FdInstr i_lea = *first;
 
@@ -275,11 +289,16 @@ static struct MacroInst macroinst_rtcall(struct Verifier *v, FdInstr *first, uin
 
     if (FD_TYPE(&i_jmp) != FDI_JMP ||
             FD_OP_TYPE(&i_jmp, 0) != FD_OT_MEM ||
-            FD_OP_BASE(&i_jmp, 0) != FD_REG_R14 ||
             FD_OP_INDEX(&i_jmp, 0) != FD_REG_NONE ||
             FD_OP_SCALE(&i_jmp, 0) != 0 ||
-            !okrtcalldisp(FD_OP_DISP(&i_jmp, 0)) ||
             !ok_mem64(&i_jmp, 0))
+        return (struct MacroInst){-1, 0};
+
+    bool base_rtcall = FD_OP_BASE(&i_jmp, 0) == FD_REG_R14 &&
+        !v->opts->no_base_rtcalls && okrtcalldisp(FD_OP_DISP(&i_jmp, 0));
+    bool ctx_rtcall = FD_OP_BASE(&i_jmp, 0) == FD_REG_R15 &&
+        okctxrtcalldisp(FD_OP_DISP(&i_jmp, 0));
+    if (!base_rtcall && !ctx_rtcall)
         return (struct MacroInst){-1, 0};
 
     // Return target can either be the next instruction or can be some

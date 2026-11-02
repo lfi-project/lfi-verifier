@@ -354,3 +354,30 @@ nop
 foo:
 nop
 jmp foo
+---
+// the context register points at writable data
+leaq 1f(%rip), %r11
+jmpq *16(%r15)
+1:
+---
+leaq 1f(%rip), %r11
+jmpq *(%r15)
+1:
+---
+// below the runtime call entrypoints
+leaq 1f(%rip), %r11
+jmpq *-40(%r15)
+1:
+---
+// indirect jump through the context register outside the rtcall macroinstruction
+jmpq *-8(%r15)
+---
+// flags: --no-base-rtcalls
+leaq 1f(%rip), %r11
+jmpq *-8(%r14)
+1:
+---
+// flags: --no-base-rtcalls
+leaq 1f(%rip), %r11
+jmpq *(%r14)
+1:

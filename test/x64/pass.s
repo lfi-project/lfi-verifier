@@ -245,3 +245,20 @@ mov %al, %ah
 movb 9(%rsp), %ah
 ---
 mov %cl, %bh
+---
+leaq 1f(%rip), %r11
+jmpq *-8(%r15)
+1:
+---
+leaq 1f(%rip), %r11
+jmpq *-32(%r15)
+1:
+---
+leaq 1f(%rip), %r11
+jmpq *-8(%r14)
+1:
+---
+// flags: --no-base-rtcalls
+leaq 1f(%rip), %r11
+jmpq *-16(%r15)
+1:

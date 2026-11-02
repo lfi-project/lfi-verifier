@@ -179,3 +179,51 @@ dc zva, x0
 // flags: --sandbox=stores
 // register post-index writeback modifies base register by arbitrary amount
 ld1 {v0.8b}, [x28], x1
+---
+// below the runtime call entrypoints
+ldur x30, [x25, #-40]
+blr x30
+---
+// the context register points at writable data (here, the thread pointer)
+ldr x30, [x25, #16]
+blr x30
+---
+// only x30 may be loaded from the runtime call entrypoints
+ldur x0, [x25, #-8]
+---
+stur x0, [x25, #-8]
+---
+// flags: --no-base-rtcalls
+ldur x30, [x27, #-8]
+blr x30
+---
+// flags: --no-base-rtcalls
+ldr x30, [x27]
+blr x30
+---
+// flags: --sandbox=stores
+// writeback moves x30 away from the runtime call entrypoint
+ldur x30, [x25, #-8]
+ldr x0, [x30], #200
+blr x30
+---
+// flags: --sandbox=stores
+ldur x30, [x27, #-8]
+ldr x0, [x30, #255]!
+blr x30
+---
+// flags: --sandbox=jumps
+ldur x30, [x25, #-8]
+ldp x0, x1, [x30, #-64]!
+blr x30
+---
+// flags: --sandbox=jumps
+ldur x30, [x27, #-8]
+ld1 {v0.16b}, [x30], #16
+blr x30
+---
+// flags: --sandbox=stores
+// also for returns
+add x30, x27, w0, uxtw
+ldr x0, [x30], #8
+ret

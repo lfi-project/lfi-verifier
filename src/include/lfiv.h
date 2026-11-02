@@ -24,6 +24,10 @@ struct LFIVOptions {
     // in the future).
     bool ctxreg;
 
+    // Reject runtime calls relative to the sandbox base for runtimes that do
+    // not map runtime call entrypoints around the sandbox base.
+    bool no_base_rtcalls;
+
     // Callback to print a null-terminated error message if verification fails.
     void (*err)(char *msg, size_t size);
 };

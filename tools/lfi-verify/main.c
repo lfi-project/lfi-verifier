@@ -187,6 +187,7 @@ static void usage(const char *prog)
             "  -s, --sandbox=TYPE      select sandbox type (full,stores,jumps)\n"
             "      --no-bdd            disable the BDD filter (x86-64)\n"
             "      --align-branches    require all direct branch targets to be bundle-aligned (x86-64)\n"
+            "      --no-base-rtcalls   reject runtime calls relative to the sandbox base\n"
             , prog);
     exit(1);
 }
@@ -203,6 +204,7 @@ main(int argc, char **argv)
         {"sandbox", required_argument, 0, 's'},
         {"no-bdd", no_argument, 0, 0},
         {"align-branches", no_argument, 0, 0},
+        {"no-base-rtcalls", no_argument, 0, 0},
         {0, 0, 0, 0}
     };
 
@@ -240,6 +242,8 @@ main(int argc, char **argv)
                 opts.no_bdd = true;
             } else if (strcmp(long_options[long_index].name, "align-branches") == 0) {
                 opts.align_branches = true;
+            } else if (strcmp(long_options[long_index].name, "no-base-rtcalls") == 0) {
+                opts.no_base_rtcalls = true;
             }
             break;
         }

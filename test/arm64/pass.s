@@ -158,3 +158,28 @@ yield
 dc zva, x28
 ---
 mrs x0, dczid_el0
+---
+ldur x30, [x25, #-8]
+blr x30
+---
+ldur x30, [x25, #-32]
+blr x30
+---
+// flags: --no-base-rtcalls
+ldur x30, [x25, #-16]
+blr x30
+---
+ldur x30, [x27, #-8]
+blr x30
+---
+// flags: --no-base-rtcalls
+// thread pointer accesses are unaffected
+ldr x0, [x25, #16]
+str x0, [x25, #16]
+---
+// flags: --sandbox=stores
+// writeback to x30 followed by a new guard
+ldur x30, [x25, #-8]
+ldr x0, [x30], #200
+add x30, x27, w30, uxtw
+blr x30

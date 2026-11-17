@@ -56,6 +56,8 @@ enum {
 #define INSN_YIELD     0xd503203f
 #define INSN_AUTIA1716 0xd503219f
 #define INSN_AUTIB1716 0xd50321df
+#define INSN_AUTIA171615 0xdac1bbfe
+#define INSN_AUTIB171615 0xdac1bffe
 #define INSN_AUTIASP   0xd50323bf
 #define INSN_PACM      0xd50324ff
 #define INSN_PACIASP   0xd503233f
@@ -529,6 +531,8 @@ static void vchk(struct Verifier *v, uint32_t insn) {
     case INSN_YIELD:
     case INSN_AUTIA1716:
     case INSN_AUTIB1716:
+    case INSN_AUTIA171615:
+    case INSN_AUTIB171615:
     case INSN_AUTIASP:
     case INSN_PACM:
     case INSN_PACIASP:

@@ -98,6 +98,12 @@ autiasp
 .arch_extension pauth
 paciasp
 ---
+// autia171615
+.inst 0xdac1bbfe
+---
+// autib171615
+.inst 0xdac1bffe
+---
 ldur x30, [x27, #-8]
 ---
 ldur x30, [x27, #-16]

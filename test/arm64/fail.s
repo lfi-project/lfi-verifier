@@ -139,6 +139,12 @@ retaa
 .arch_extension pauth
 retab
 ---
+// autiasppc modifies x30 and is not allowed
+.inst 0xf380005f
+---
+// retaasppc is not allowed
+.inst 0x5500005f
+---
 // Load from stack, authenticate, but no guard before return
 .arch_extension pauth
 ldr x30, [sp]
